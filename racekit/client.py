@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import logging
+
 from racekit.config import _provider_domain
 from pathlib import Path
 import requests
 import json
 import time
+
+logger = logging.getLogger(__name__)
 
 _ORIGIN = f"https://{_provider_domain('my')}"
 
@@ -52,7 +56,7 @@ class RaceResultClient:
             try:
                 cfg_data = self._get_json(url, {"lang": "en", "mid": 0, "standalone": "false"})
             except Exception as exc:
-                print(f"   ! config yok ({page}): {exc}")
+                logger.warning("   ! config yok (%s): %s", page, exc)
                 continue
             if cfg_data.get("server"):
                 self.server = cfg_data["server"]
@@ -66,9 +70,9 @@ class RaceResultClient:
                 "RaceResult config keşfedilemedi (key bulunamadı). "
                 "EventConfig.known_key ya da <KEY>_KEY ortam değişkeniyle fallback sağlayın."
             )
-        print(
-            f"-> keşif: server={self.server} key={self.key} "
-            f"contests={self.contests or '(yok)'}"
+        logger.info(
+            "-> keşif: server=%s key=%s contests=%s",
+            self.server, self.key, self.contests or "(yok)",
         )
 
     def fetch_list(self, spec):
@@ -80,7 +84,7 @@ class RaceResultClient:
                     f"python fetch_results.py   (yarış klasörünün içinden)"
                 )
             data = json.loads(raw_path.read_text(encoding="utf-8"))
-            print(f"-> {spec.role}: {raw_path.name} okundu (offline)")
+            logger.info("-> %s: %s okundu (offline)", spec.role, raw_path.name)
             return data
 
         url = f"https://{self.server}/{self.cfg.event_id}/{spec.page}/list"
@@ -97,7 +101,7 @@ class RaceResultClient:
         }
         data = self._get_json(url, params)
         nrows = self._count_rows(data.get("data"))
-        print(f"-> {spec.role}: API'dan çekildi ({nrows} satır)")
+        logger.info("-> %s: API'dan çekildi (%d satır)", spec.role, nrows)
         time.sleep(SLEEP_BETWEEN_REQUESTS)
         return data
 
@@ -113,7 +117,7 @@ class RaceResultClient:
                 raw_path.write_text(
                     json.dumps(raw[spec.role], ensure_ascii=False, indent=2), encoding="utf-8"
                 )
-                print(f"   -> {raw_path.name} yazıldı")
+                logger.info("   -> %s yazıldı", raw_path.name)
         return raw
 
     @staticmethod

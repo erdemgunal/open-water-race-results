@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 def fetch_event(cfg, offline):
     from racekit.client import RaceResultClient
     from racekit.dataset import build_dataset, list_snapshots, snapshot_previous, summarize, write_outputs
@@ -8,9 +12,9 @@ def fetch_event(cfg, offline):
     if not offline:
         snap = snapshot_previous(cfg, keep=cfg.snapshot_keep)
         if snap is not None:
-            print(f"-> önceki veri arşivlendi: {snap.relative_to(cfg.data_dir)}")
+            logger.info("-> önceki veri arşivlendi: %s", snap.relative_to(cfg.data_dir))
         else:
-            print("-> arşivlenecek önceki veri bulunamadı (ilk çekim)")
+            logger.info("-> arşivlenecek önceki veri bulunamadı (ilk çekim)")
 
     client = RaceResultClient(cfg, offline=offline)
     raw = client.fetch_all()
@@ -24,12 +28,10 @@ def fetch_event(cfg, offline):
     xlsx_path, csv_path = write_outputs(df, cfg)
 
     summarize(df, cfg)
-    print("\nYazılan dosyalar:")
-    print(f"   {xlsx_path}")
-    print(f"   {csv_path}")
+    logger.info("\nYazılan dosyalar:\n   %s\n   %s", xlsx_path, csv_path)
     snaps = list_snapshots(cfg)
     if snaps:
-        print(f"\nArşiv (geri dönülebilir önceki sürümler): {len(snaps)} kayıt")
+        logger.info("Arşiv (geri dönülebilir önceki sürümler): %d kayıt", len(snaps))
         for s in snaps[-3:]:
-            print(f"   {s}")
+            logger.info("   %s", s)
     return df, xlsx_path, csv_path

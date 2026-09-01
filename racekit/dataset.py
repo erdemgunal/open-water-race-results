@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -10,6 +11,8 @@ from openpyxl import load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 
 from racekit.config import _provider_domain
+
+logger = logging.getLogger(__name__)
 
 RANK_ROLE_COLUMN = {
     "live": "gender_rank",
@@ -245,17 +248,20 @@ def list_snapshots(cfg):
     return sorted(p for p in snap_root.iterdir() if p.is_dir())
 
 def summarize(df, cfg):
-    print("\n" + "=" * 66)
-    print(f"ÖZET — {cfg.name}")
-    print("=" * 66)
-    print(f"Toplam kayıtlı yarışmacı : {len(df)}")
+    lines = [
+        "",
+        "=" * 66,
+        f"ÖZET — {cfg.name}",
+        "=" * 66,
+        f"Toplam kayıtlı yarışmacı : {len(df)}",
+    ]
     if "status" in df.columns:
-        print(df["status"].value_counts().to_string())
+        lines.append(df["status"].value_counts().to_string())
 
     fin = df[df["status"] == "FINISHED"]
     if not fin.empty:
         best = fin.loc[fin["swim_seconds"].idxmin()]
-        print(
+        lines.append(
             f"En hızlı genel: {best.get('full_name', '')} "
             f"({best.get('time_text', '')}) - {best.get('age_group', '')}"
         )
@@ -264,9 +270,12 @@ def summarize(df, cfg):
         user = df[df["bib"].astype(str).str.strip() == str(cfg.default_bib)]
         if len(user) == 1:
             u = user.iloc[0]
-            print(f"\nVarsayılan kayıt (bib {cfg.default_bib}):")
+            lines.append(f"Varsayılan kayıt (bib {cfg.default_bib}):")
             for c in ("full_name", "gender", "age_group", "status",
                       "gender_rank", "overall_rank", "age_group_rank", "time_text", "swim_seconds"):
-                print(f"   {c:24s}: {u[c]}")
+                lines.append(f"   {c:24s}: {u[c]}")
         else:
-            print(f"\n!! bib {cfg.default_bib} benzersiz bulunamadı ({len(user)} kayıt).")
+            logger.warning("!! bib %s benzersiz bulunamadı (%d kayıt).",
+                           cfg.default_bib, len(user))
+
+    logger.info("\n".join(lines))

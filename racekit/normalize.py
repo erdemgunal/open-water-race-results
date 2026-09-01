@@ -1,6 +1,11 @@
 from __future__ import annotations
+
+import logging
+
 import pandas as pd
 import re
+
+logger = logging.getLogger(__name__)
 
 def to_nullable_int(s):
     return pd.to_numeric(s, errors="coerce").astype("Int64")
@@ -151,7 +156,7 @@ def normalize_list(raw, role, result_role):
     dfields = raw.get("DataFields") or []
     nested = raw.get("data") or {}
     if not dfields:
-        print(f"!! [{role}] DataFields boş — payload yapısını *_raw.json üzerinden inceleyin.")
+        logger.warning("!! [%s] DataFields boş — payload yapısını *_raw.json üzerinden inceleyin.", role)
         return pd.DataFrame()
 
     colmap = classify_columns(dfields)
@@ -166,7 +171,7 @@ def normalize_list(raw, role, result_role):
         rec["_subgroup_key"] = skey
         records.append(rec)
     if not records:
-        print(f"!! [{role}] satır bulunamadı.")
+        logger.warning("!! [%s] satır bulunamadı.", role)
         return pd.DataFrame()
 
     df = pd.DataFrame(records)
