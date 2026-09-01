@@ -315,7 +315,7 @@ def view3_ecdf(df, cfg, user, out_dir, show):
           f"({my_seconds - t100:.0f}s faster)")
     return path
 
-def view4_nations(df, cfg, out_dir, min_entries, max_nations, show):
+def view4_nations(df, cfg, out_dir, show):
     d = df.copy()
     d["nation"] = d["nation"].fillna("").astype(str).str.strip().str.upper()
     d.loc[d["nation"] == "", "nation"] = "N/A"
@@ -326,10 +326,10 @@ def view4_nations(df, cfg, out_dir, min_entries, max_nations, show):
                med_pace100=("swim_seconds",
                             lambda s: np.median(s) / (distance / 100.0)))
           .reset_index())
-    meaningful = g[g["count"] >= min_entries].copy()
-    show_all = len(meaningful) <= max_nations
+    meaningful = g[g["count"] >= 5].copy()
+    show_all = len(meaningful) <= 15
     if not show_all:
-        meaningful = meaningful.sort_values("count", ascending=False).head(max_nations)
+        meaningful = meaningful.sort_values("count", ascending=False).head(15)
     order = meaningful.sort_values("count", ascending=True)["nation"].tolist()
     m2 = meaningful.set_index("nation").loc[order]
 
@@ -365,9 +365,9 @@ def view4_nations(df, cfg, out_dir, min_entries, max_nations, show):
     cbar = fig.colorbar(sm, ax=ax2, fraction=0.05, pad=0.02)
     cbar.set_label("median pace (s per 100 m)")
 
-    scope = f"{len(meaningful)} nations with >= {min_entries} finishers"
+    scope = f"{len(meaningful)} nations with >= 5 finishers"
     if not show_all:
-        scope = f"top {max_nations} nations (of {len(g)} with entries)"
+        scope = f"top 15 nations (of {len(g)} with entries)"
     fig.suptitle(f"{cfg.name} - participation & median pace by nation  "
                  f"({scope})", fontsize=12)
     fig.tight_layout(rect=(0, 0, 1, 0.95))
@@ -450,7 +450,7 @@ def view5_gender_kde(df, cfg, user, out_dir, show):
     print(f"  [5/5] {path.name}  ({med_txt})")
     return path
 
-def run(cfg, bib, time_override, min_entries, max_nations, show):
+def run(cfg, bib, time_override, show):
     df = load_results(cfg)
     user = resolve_user(df, cfg, bib, time_override)
 
@@ -467,7 +467,7 @@ def run(cfg, bib, time_override, min_entries, max_nations, show):
         view1_distribution(df, cfg, user, out_dir, show=show),
         view2_age_gender(df, cfg, out_dir, show=show),
         view3_ecdf(df, cfg, user, out_dir, show=show),
-        view4_nations(df, cfg, out_dir, min_entries, max_nations, show=show),
+        view4_nations(df, cfg, out_dir, show=show),
         view5_gender_kde(df, cfg, user, out_dir, show=show),
     ]
     print("=" * 66)
@@ -485,17 +485,11 @@ def main():
                         help="senin bib numaran (varsayılan: event.py default_bib)")
     parser.add_argument("--time", type=float, default=None,
                         help="senin süren saniye cinsinden (--bib'i ezer)")
-    parser.add_argument("--min-entries", type=int, default=5,
-                        help="ülke grafiği için minimum katılımcı sayısı")
-    parser.add_argument("--max-nations", type=int, default=15,
-                        help="ülke grafiğinde gösterilecek maksimum ülke")
     parser.add_argument("--show", action="store_true",
                         help="grafikleri interaktif olarak da aç")
     args = parser.parse_args()
 
-    run(EVENT, bib=args.bib, time_override=args.time,
-        min_entries=args.min_entries, max_nations=args.max_nations,
-        show=args.show)
+    run(EVENT, bib=args.bib, time_override=args.time, show=args.show)
 
 if __name__ == "__main__":
     main()
