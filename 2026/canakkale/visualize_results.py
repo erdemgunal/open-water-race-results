@@ -185,10 +185,22 @@ def _draw_violin(ax, data, pos, color, width):
     ax.plot([pos], [np.mean(data)], marker="_", color="#2A2A2A", ms=10, zorder=6)
     return None
 
-def view2_age_gender(df, cfg, out_dir, show):
+def view2_age_gender(df, cfg, user, out_dir, show):
     d = df.copy()
     d["band"] = d["age_group"].map(age_band)
     bands = sorted(d["band"].unique(), key=band_sort_key)
+
+    row = user.get("row")
+    if row is not None:
+        hl = (str(row["gender"]).strip().upper(), age_band(row["age_group"]))
+        hl_label = {"M": "Male", "F": "Female"}.get(hl[0], hl[0]) + f" {hl[1]}"
+        hl_note = f"\u25c6 = {hl_label}, your bracket"
+    elif cfg.owner_highlight:
+        hl = cfg.owner_highlight
+        hl_label = {"M": "Male", "F": "Female"}.get(hl[0], hl[0]) + f" {hl[1]}"
+        hl_note = f"\u25c6 = {hl_label}, the owner's bracket"
+    else:
+        hl, hl_label, hl_note = None, "", ""
 
     male_c, female_c, hl_c = "#4C72B0", "#DD8452", "#C44E52"
     fig, ax = plt.subplots(figsize=(12.5, 6.4))
@@ -199,8 +211,7 @@ def view2_age_gender(df, cfg, out_dir, show):
             if grp.empty:
                 continue
             pos = i - 0.17 if g == "M" else i + 0.17
-            is_hl = bool(cfg.owner_highlight) and (g == cfg.owner_highlight[0]
-                                                   and band == cfg.owner_highlight[1])
+            is_hl = bool(hl) and (g == hl[0] and band == hl[1])
             parts = _draw_violin(ax, grp.to_numpy(dtype=float), pos,
                                  hl_c if is_hl else color, width=0.30)
             if parts is not None and is_hl:
@@ -219,18 +230,15 @@ def view2_age_gender(df, cfg, out_dir, show):
     ax.set_title(f"{cfg.name} - finish time by age band and gender   "
                  "(count under each violin)")
 
-    hl_label = ""
-    if cfg.owner_highlight:
-        hl_gender, hl_band = cfg.owner_highlight
-        hl_label = {"M": "Male", "F": "Female"}.get(hl_gender, hl_gender) + f" {hl_band}"
     handles = [mpatches.Patch(color=male_c, label="Male"),
                mpatches.Patch(color=female_c, label="Female")]
-    if cfg.owner_highlight:
+    if hl:
         handles.append(mpatches.Patch(color=hl_c, label=f"{hl_label} \u25c6"))
-    note = f"\u25c6 = {hl_label}, the owner's bracket" if cfg.owner_highlight else ""
-    ax.text(0.985, 0.03, note, transform=ax.transAxes, ha="right", va="bottom",
-            fontsize=9, bbox=dict(boxstyle="round", facecolor="#F5E8E8",
-                                  edgecolor="#C44E52", alpha=0.95))
+    if hl_note:
+        ax.text(0.985, 0.03, hl_note, transform=ax.transAxes, ha="right",
+                va="bottom", fontsize=9,
+                bbox=dict(boxstyle="round", facecolor="#F5E8E8",
+                          edgecolor="#C44E52", alpha=0.95))
     ax.legend(handles=handles, loc="upper left", frameon=True)
     ax.set_ylim(bottom=0)
     fig.tight_layout()
@@ -465,7 +473,7 @@ def run(cfg, bib, time_override, show):
     out_dir.mkdir(parents=True, exist_ok=True)
     paths = [
         view1_distribution(df, cfg, user, out_dir, show=show),
-        view2_age_gender(df, cfg, out_dir, show=show),
+        view2_age_gender(df, cfg, user, out_dir, show=show),
         view3_ecdf(df, cfg, user, out_dir, show=show),
         view4_nations(df, cfg, out_dir, show=show),
         view5_gender_kde(df, cfg, user, out_dir, show=show),
