@@ -1,7 +1,6 @@
 from __future__ import annotations
-from pathlib import Path
 
-def fetch_event(cfg, offline: bool = False):
+def fetch_event(cfg, offline):
     from racekit.client import RaceResultClient
     from racekit.dataset import build_dataset, list_snapshots, snapshot_previous, summarize, write_outputs
     from racekit.normalize import normalize_list
@@ -34,12 +33,3 @@ def fetch_event(cfg, offline: bool = False):
         for s in snaps[-3:]:
             print(f"   {s}")
     return df, xlsx_path, csv_path
-
-
-def visualize_event(cfg, bib: int | None = None, time_override: float | None = None,
-                    min_entries: int = 5, max_nations: int = 15,
-                    show: bool = False) -> list[Path]:
-    from racekit.visualize import run
-
-    return run(cfg, bib=bib, time_override=time_override,
-               min_entries=min_entries, max_nations=max_nations, show=show)

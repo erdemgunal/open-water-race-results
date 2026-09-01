@@ -1,10 +1,11 @@
-from racekit.api import fetch_event
-from pathlib import Path
-from event import EVENT
 import argparse
 import sys
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from event import EVENT
+from racekit.api import fetch_event
 
 def main():
     parser = argparse.ArgumentParser(description=f"{EVENT.name} — veri çekme")
