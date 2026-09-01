@@ -1,5 +1,6 @@
-from racekit.config import _provider_domain
 from __future__ import annotations
+
+from racekit.config import _provider_domain
 from pathlib import Path
 import requests
 import json
@@ -25,7 +26,7 @@ TIMEOUT = 30
 SLEEP_BETWEEN_REQUESTS = 0.5
 
 class RaceResultClient:
-    def __init__(self, cfg, offline: bool = False):
+    def __init__(self, cfg, offline):
         self.cfg = cfg
         self.offline = offline
         self.server = cfg.bootstrap_server
@@ -36,7 +37,7 @@ class RaceResultClient:
         if not offline:
             self._discover()
 
-    def _get_json(self, url: str, params: dict | None = None) -> dict:
+    def _get_json(self, url, params):
         resp = self.session.get(url, params=params, timeout=TIMEOUT)
         resp.raise_for_status()
         data = resp.json()
@@ -100,7 +101,7 @@ class RaceResultClient:
         time.sleep(SLEEP_BETWEEN_REQUESTS)
         return data
 
-    def fetch_all(self) -> dict[str, dict]:
+    def fetch_all(self):
         raw = {}
         for spec in self.cfg.lists:
             raw[spec.role] = self.fetch_list(spec)
@@ -116,7 +117,7 @@ class RaceResultClient:
         return raw
 
     @staticmethod
-    def _count_rows(nested) -> int:
+    def _count_rows(nested):
         if isinstance(nested, list):
             return len(nested)
         if isinstance(nested, dict):

@@ -1,12 +1,15 @@
-from openpyxl.styles import Alignment, Font, PatternFill
-from racekit.config import _provider_domain
-from openpyxl import load_workbook
 from __future__ import annotations
+
+import shutil
 from datetime import datetime
 from pathlib import Path
-import pandas as pd
+
 import numpy as np
-import shutil
+import pandas as pd
+from openpyxl import load_workbook
+from openpyxl.styles import Alignment, Font, PatternFill
+
+from racekit.config import _provider_domain
 
 RANK_ROLE_COLUMN = {
     "live": "gender_rank",
@@ -40,10 +43,10 @@ COLUMN_ORDER = [
     "swim_seconds",
 ]
 
-def to_nullable_int(s: pd.Series) -> pd.Series:
+def to_nullable_int(s):
     return pd.to_numeric(s, errors="coerce").astype("Int64")
 
-def add_derived_ranks(df: pd.DataFrame) -> pd.DataFrame:
+def add_derived_ranks(df):
     df = df.copy()
     fin = df["status"] == "FINISHED"
 
@@ -74,7 +77,7 @@ def add_derived_ranks(df: pd.DataFrame) -> pd.DataFrame:
             df[official] = df[computed]
     return df
 
-def build_dataset(cfg, frames: dict[str, pd.DataFrame]) -> pd.DataFrame:
+def build_dataset(cfg, frames):
     base = frames["participants"].copy()
     if base.empty:
         raise RuntimeError("participants listesi boş veri seti üretilemedi.")
@@ -149,7 +152,7 @@ COLUMN_DOCS = {
     "swim_seconds": ("Süre - toplam saniye", "int (Int64)", "sonuç listesi", "Data-science için sayısal değer ms atılır"),
 }
 
-def build_meta(df: pd.DataFrame, cfg) -> pd.DataFrame:
+def build_meta(df, cfg):
     rows = []
     for c in df.columns:
         desc, dtype, source, note = COLUMN_DOCS.get(c, ("", "", "", ""))
@@ -174,7 +177,7 @@ def build_meta(df: pd.DataFrame, cfg) -> pd.DataFrame:
         rows.append(dict(zip(("column", "description", "dtype", "source", "notes"), n)))
     return pd.DataFrame(rows)
 
-def style_excel(path: Path):
+def style_excel(path):
     wb = load_workbook(path)
     header_fill = PatternFill("solid", fgColor="1F4E78")
     for ws in wb.worksheets:
@@ -189,7 +192,7 @@ def style_excel(path: Path):
             ws.column_dimensions[letter].width = min(max(max_len + 2, 10), 45)
     wb.save(path)
 
-def write_outputs(df: pd.DataFrame, cfg) -> tuple[Path, Path]:
+def write_outputs(df, cfg):
     cfg.data_dir.mkdir(parents=True, exist_ok=True)
     stem = cfg.dataset_stem()
     xlsx_path = cfg.data_dir / f"{stem}.xlsx"
@@ -203,7 +206,7 @@ def write_outputs(df: pd.DataFrame, cfg) -> tuple[Path, Path]:
     df.to_csv(csv_path, index=False, encoding="utf-8-sig")
     return xlsx_path, csv_path
 
-def _snapshot_path(cfg) -> Path:
+def _snapshot_path(cfg):
     data_dir = Path(cfg.data_dir)
     snap_root = data_dir / SNAPSHOT_DIR
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -214,7 +217,7 @@ def _snapshot_path(cfg) -> Path:
         i += 1
     return snap_dir
 
-def snapshot_previous(cfg, keep: int | None = None) -> Path | None:
+def snapshot_previous(cfg, keep):
     data_dir = Path(cfg.data_dir)
     stem = cfg.dataset_stem()
     files = [data_dir / f"{stem}.csv", data_dir / f"{stem}.xlsx"]
@@ -235,13 +238,13 @@ def snapshot_previous(cfg, keep: int | None = None) -> Path | None:
             shutil.rmtree(old, ignore_errors=True)
     return snap_dir
 
-def list_snapshots(cfg) -> list[Path]:
+def list_snapshots(cfg):
     snap_root = Path(cfg.data_dir) / SNAPSHOT_DIR
     if not snap_root.exists():
         return []
     return sorted(p for p in snap_root.iterdir() if p.is_dir())
 
-def summarize(df: pd.DataFrame, cfg):
+def summarize(df, cfg):
     print("\n" + "=" * 66)
     print(f"ÖZET — {cfg.name}")
     print("=" * 66)

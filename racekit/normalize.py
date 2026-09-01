@@ -2,17 +2,17 @@ from __future__ import annotations
 import pandas as pd
 import re
 
-def to_nullable_int(s: pd.Series) -> pd.Series:
+def to_nullable_int(s):
     return pd.to_numeric(s, errors="coerce").astype("Int64")
 
-def strip_localized(value) -> str:
+def strip_localized(value):
     if value is None:
         return ""
     s = str(value).strip()
     m = re.match(r"^\{EN:([^|]*)\|", s)
     return m.group(1).strip() if m else s
 
-def parse_nation(value) -> str | None:
+def parse_nation(value):
     if value is None:
         return None
     s = str(value).strip()
@@ -23,7 +23,7 @@ def parse_nation(value) -> str | None:
         return s
     return s or None
 
-def parse_gender(value) -> str | None:
+def parse_gender(value):
     if value is None:
         return None
     s = str(value).strip()
@@ -38,7 +38,7 @@ def parse_gender(value) -> str | None:
         return "M"
     return None
 
-def gender_from_key(key) -> str | None:
+def gender_from_key(key):
     s = "" if key is None else str(key)
     if "Female" in s:
         return "F"
@@ -56,7 +56,7 @@ STATUS_MAP = {
     "": "DNS",
 }
 
-def parse_time(text) -> tuple[str, int | None]:
+def parse_time(text):
     text = "" if text is None else str(text).strip()
     upper = text.upper()
     if upper in STATUS_MAP:
@@ -70,14 +70,14 @@ def parse_time(text) -> tuple[str, int | None]:
         return "FINISHED", seconds
     return "UNKNOWN", None
 
-def parse_rank(value) -> int | None:
+def parse_rank(value):
     if value is None:
         return None
     s = str(value).strip()
     m = re.match(r"^(\d{1,6})\.?$", s)
     return int(m.group(1)) if m else None
 
-def age_band(age_group) -> str:
+def age_band(age_group):
     s = "" if age_group is None else str(age_group)
     m = re.search(r"\(([^()]*)\)", s)
     inner = m.group(1) if m else s
@@ -86,11 +86,11 @@ def age_band(age_group) -> str:
         return mm.group(1).replace(" ", "")
     return inner.strip()
 
-def band_sort_key(band) -> int:
+def band_sort_key(band):
     m = re.match(r"\s*(\d{1,3})", str(band))
     return int(m.group(1)) if m else 999
 
-def classify_columns(dfields: list) -> dict[int, str]:
+def classify_columns(dfields):
     out: dict[int, str] = {}
     for idx, expr in enumerate(dfields):
         e = str(expr)
@@ -147,7 +147,7 @@ def _iter_rows(nested):
         for row in nested:
             yield None, None, row
 
-def normalize_list(raw: dict, role: str, result_role: str) -> pd.DataFrame:
+def normalize_list(raw, role, result_role):
     dfields = raw.get("DataFields") or []
     nested = raw.get("data") or {}
     if not dfields:
