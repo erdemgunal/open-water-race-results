@@ -217,7 +217,7 @@ def _snapshot_path(cfg):
         i += 1
     return snap_dir
 
-def snapshot_previous(cfg, keep):
+def snapshot_previous(cfg, keep=None):
     data_dir = Path(cfg.data_dir)
     stem = cfg.dataset_stem()
     files = [data_dir / f"{stem}.csv", data_dir / f"{stem}.xlsx"]

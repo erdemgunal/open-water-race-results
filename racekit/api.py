@@ -6,7 +6,7 @@ def fetch_event(cfg, offline):
     from racekit.normalize import normalize_list
 
     if not offline:
-        snap = snapshot_previous(cfg)
+        snap = snapshot_previous(cfg, keep=cfg.snapshot_keep)
         if snap is not None:
             print(f"-> önceki veri arşivlendi: {snap.relative_to(cfg.data_dir)}")
         else:

@@ -19,7 +19,6 @@ from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize
 from matplotlib.ticker import FuncFormatter
 
-
 def age_band(age_group):
     s = "" if age_group is None else str(age_group)
     m = re.search(r"\(([^()]*)\)", s)
@@ -86,7 +85,7 @@ def resolve_user(df, cfg, bib, time_override):
     return {"seconds": med, "rank": None, "label": "fallback (medyan)",
             "row": None, "mode": "median"}
 
-def gaussian_kde_pdf(x_grid, sample, bw):
+def gaussian_kde_pdf(x_grid, sample, bw=None):
     sample = np.asarray(sample, dtype=float).ravel()
     x_grid = np.asarray(x_grid, dtype=float)
     if sample.size == 0:
