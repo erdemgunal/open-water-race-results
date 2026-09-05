@@ -158,11 +158,13 @@ def view1_distribution(df, cfg, user, out_dir, show):
     fig.tight_layout()
 
     path = out_dir / "01_finish_time_distribution.png"
-    fig.savefig(path, dpi=150, bbox_inches="tight")
+    if not show:
+        fig.savefig(path, dpi=150, bbox_inches="tight")
     if show:
         plt.show()
     plt.close(fig)
-    print(f"  [1/5] {path.name}  (median {fmt_time(median)}, "
+    status = "saved" if not show else "shown (not saved)"
+    print(f"  [1/5] {path.name}  [{status}]  (median {fmt_time(median)}, "
           f"top decile {fmt_time(top_decile)})")
     return path
 
@@ -244,11 +246,13 @@ def view2_age_gender(df, cfg, user, out_dir, show):
     fig.tight_layout()
 
     path = out_dir / "02_age_group_gender.png"
-    fig.savefig(path, dpi=150, bbox_inches="tight")
+    if not show:
+        fig.savefig(path, dpi=150, bbox_inches="tight")
     if show:
         plt.show()
     plt.close(fig)
-    print(f"  [2/5] {path.name}")
+    status = "saved" if not show else "shown (not saved)"
+    print(f"  [2/5] {path.name}  [{status}]")
     return path
 
 def view3_ecdf(df, cfg, user, out_dir, show):
@@ -309,14 +313,16 @@ def view3_ecdf(df, cfg, user, out_dir, show):
     fig.tight_layout()
 
     path = out_dir / "03_ecdf.png"
-    fig.savefig(path, dpi=150, bbox_inches="tight")
+    if not show:
+        fig.savefig(path, dpi=150, bbox_inches="tight")
     if show:
         plt.show()
     plt.close(fig)
 
     r50, r100 = max(1, rank_my - 50), max(1, rank_my - 100)
     t50, t100 = float(times[r50 - 1]), float(times[r100 - 1])
-    print(f"  [3/5] {path.name}")
+    status = "saved" if not show else "shown (not saved)"
+    print(f"  [3/5] {path.name}  [{status}]")
     print(f"        rank ~{rank_my:,} -> up 50  needs {fmt_time(t50)} "
           f"({my_seconds - t50:.0f}s faster)")
     print(f"        rank ~{rank_my:,} -> up 100 needs {fmt_time(t100)} "
@@ -381,11 +387,13 @@ def view4_nations(df, cfg, out_dir, show):
     fig.tight_layout(rect=(0, 0, 1, 0.95))
 
     path = out_dir / "04_nation_participation_pace.png"
-    fig.savefig(path, dpi=150, bbox_inches="tight")
+    if not show:
+        fig.savefig(path, dpi=150, bbox_inches="tight")
     if show:
         plt.show()
     plt.close(fig)
-    print(f"  [4/5] {path.name}  ({len(meaningful)} nations shown)")
+    status = "saved" if not show else "shown (not saved)"
+    print(f"  [4/5] {path.name}  [{status}]  ({len(meaningful)} nations shown)")
     return path
 
 def view5_gender_kde(df, cfg, user, out_dir, show):
@@ -449,13 +457,15 @@ def view5_gender_kde(df, cfg, user, out_dir, show):
     fig.tight_layout()
 
     path = out_dir / "05_gender_kde.png"
-    fig.savefig(path, dpi=150, bbox_inches="tight")
+    if not show:
+        fig.savefig(path, dpi=150, bbox_inches="tight")
     if show:
         plt.show()
     plt.close(fig)
     med_txt = "  vs  ".join(f"{lab} {fmt_time(float(np.median(t)))}"
                             for lab, t, _, _ in groups)
-    print(f"  [5/5] {path.name}  ({med_txt})")
+    status = "saved" if not show else "shown (not saved)"
+    print(f"  [5/5] {path.name}  [{status}]  ({med_txt})")
     return path
 
 def run(cfg, bib, time_override, show):
@@ -479,9 +489,14 @@ def run(cfg, bib, time_override, show):
         view5_gender_kde(df, cfg, user, out_dir, show=show),
     ]
     print("=" * 66)
-    print("Saved figures:")
-    for p in sorted(out_dir.glob("*.png")):
-        print(f"   {p}")
+    if show:
+        print("Interactive mode: nothing was auto-saved.")
+        print("Zoom each window as you like, then use its toolbar save")
+        print("button to keep the exact view you see on screen.")
+    else:
+        print("Saved figures:")
+        for p in sorted(out_dir.glob("*.png")):
+            print(f"   {p}")
     return paths
 
 def main():
