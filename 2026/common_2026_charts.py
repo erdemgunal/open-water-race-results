@@ -208,11 +208,11 @@ def _save_chart(fin, can_cfg, ist_cfg, show):
 
     lim = (min(x.min(), y.min()) - 5, max(x.max(), y.max()) + 5)
     ax.plot(lim, lim, ":", color="gray", lw=1.2,
-            label="equal pace (y = x)")
+            label="y = x")
     if len(fin) >= 2:
         b, a = np.polyfit(x, y, 1)
         xs = np.linspace(*lim, 100)
-        ax.plot(xs, a + b * xs, "-", color="k", lw=1.4, label=f"linear fit  y = {b:.2f}x {a:+.1f}   " f"(R² = {r2:.2f})")
+        ax.plot(xs, a + b * xs, "-", color="k", lw=1.4, label=f"y = {b:.2f}x {a:+.1f}   " f"(R² = {r2:.2f})")
 
     hl = _find_highlight_row(fin, can_cfg, ist_cfg)
     if hl is not None:
