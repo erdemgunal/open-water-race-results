@@ -2,29 +2,27 @@ from __future__ import annotations
 
 """
 Çıktılar:
-  2026/output/common_2026_dataset.csv   -> ortak yarışmacılar (yan yana)
   2026/output/canakkale_vs_istanbul_common_pace.png -> tempo korelasyon grafiği
      (sahibin noktası bib 230 / bib 1831 - Hakkı Erdem Günal, M, 2004 -
      koyu kalın mavi nokta ile vurgulanır)
-  2026/output/age_group_kruskal_wallis.png  -> yaş grubu × tempo + K-W testi
+  2026/output/age_group_kruskal_wallis.png  -> yaş grubu x tempo + K-W testi
 
-Not: time_gap_seconds / time_gap_percent sütunları HAM bitiş süresi farkıdır;
-mesafeler (5 km vs 6.5 km) farklı olduğundan korelasyon için tempo sütunlarını
-(pace_*_s100m) kullanın.
+Veri, common_2026_dataset modülündeki load_common() ile HAM datasetlerden
+yeniden kurulur; yani önce common_2026_dataset.py çalıştırılması gerekmez
+(common_2026_dataset.csv bu grafiklerin girdisi değildir).
+
+Not: Mesafeler (5 km vs 6.5 km) farklı olduğundan korelasyon için tempo
+sütunlarını (pace_*_s100m) kullanın.
 
 Kullanım:
-  python3 common_2026.py            # özet + CSV (+ grafik)
-  python3 common_2026.py --list     # ortakların tamamını konsola da yazar
-  python3 common_2026.py --no-chart # grafik üretme
-  python3 common_2026.py --show     # grafiği pencere olarak aç (kaydetmez)
+  python3 common_2026_charts.py         # grafikleri üretir (kaydeder)
+  python3 common_2026_charts.py --show  # grafiği pencere olarak aç (kaydetmez)
 """
 
 import argparse
-import importlib.util
 import math
 import re
 import sys
-import unicodedata
 from pathlib import Path
 
 import numpy as np
@@ -38,53 +36,12 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import to_rgba
 from matplotlib.patches import Patch
 
-BASE_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = BASE_DIR.parent
+from common_2026_dataset import load_common
 
-CANAKKALE_CSV = BASE_DIR / "canakkale" / "raceresult_data" / "canakkale_2026_dataset.csv"
-ISTANBUL_CSV = BASE_DIR / "istanbul" / "raceresult_data" / "bogazici_38_dataset.csv"
+BASE_DIR = Path(__file__).resolve().parent
 OUT_DIR = BASE_DIR / "output"
-COMMON_CSV = OUT_DIR / "common_2026_dataset.csv"
 CHART_PNG = OUT_DIR / "canakkale_vs_istanbul_common_pace.png"
 KW_CHART_PNG = OUT_DIR / "age_group_kruskal_wallis.png"
-
-def normalize_full_name(value):
-    if value is None or (isinstance(value, float) and pd.isna(value)):
-        return ""
-    s = unicodedata.normalize("NFKC", str(value)).strip().upper()
-    s = s.replace("İ", "I")
-    s = unicodedata.normalize("NFKD", s)
-    s = "".join(ch for ch in s if not unicodedata.combining(ch))
-    return re.sub(r"[^A-Z]", "", s)
-
-def read_dataset(path):
-    df = pd.read_csv(path, encoding="utf-8-sig")
-    df.columns = [str(c).strip().lstrip("\ufeff") for c in df.columns]
-    df["status"] = df["status"].fillna("").astype(str).str.strip().str.upper()
-    df["swim_seconds"] = pd.to_numeric(df["swim_seconds"], errors="coerce")
-    df["overall_rank"] = pd.to_numeric(df["overall_rank"], errors="coerce")
-    df["birth_year"] = pd.to_numeric(df["birth_year"], errors="coerce")
-    return df
-
-def add_match_key(df):
-    df = df.copy()
-    name = df["full_name"].map(lambda v: normalize_full_name(v if pd.notna(v) else ""))
-    nation = df["nation"].map(lambda v: str(v).strip().upper() if pd.notna(v) else "")
-    year = df["birth_year"].map(lambda v: "" if pd.isna(v) else str(int(v)))
-    df["_match_key"] = name + "|" + nation + "|" + year
-    return df
-
-def load_event(cfg_name: str):
-    path = BASE_DIR / cfg_name / "event.py"
-    spec = importlib.util.spec_from_file_location(f"event_{cfg_name}", path)
-    mod = importlib.util.module_from_spec(spec)
-    sys.path.insert(0, str(PROJECT_ROOT))
-    spec.loader.exec_module(mod)
-    return mod.EVENT
-
-# --------------------------------------------------------------------------
-# istatistik yardımcıları
-# --------------------------------------------------------------------------
 
 def _p_two_sided(r, n):
     """H0: gerçek korelasyon = 0 için iki kuyruklu yaklaşık p-değeri.
@@ -214,152 +171,12 @@ def _kruskal_wallis(groups):
     dfree = k - 1
     return float(h), dfree, _chi_square_sf(h, dfree)
 
-def run(show_list, make_chart, show):
-    can_cfg = load_event("canakkale")
-    ist_cfg = load_event("istanbul")
-
-    can = add_match_key(read_dataset(CANAKKALE_CSV))
-    ist = add_match_key(read_dataset(ISTANBUL_CSV))
-
-    bar = "=" * 66
-    print(bar)
-    print("2026 ORTAK YARIŞMACILAR - " + can_cfg.name + " / " + ist_cfg.name)
-    print(bar)
-    print(f"{can_cfg.name}: {len(can)} kayıtlı  ({can_cfg.distance_m:g} m)")
-    print(f"{ist_cfg.name}: {len(ist)} kayıtlı  ({ist_cfg.distance_m:g} m)")
-
-    # ayni kisinin bir yarista birden fazla kaydi olursa ilkini al
-    for label, df in (("Çanakkale", can), ("İstanbul", ist)):
-        dups = int(df["_match_key"].duplicated().sum())
-        if dups:
-            print(f"  !! {label}: {dups} kopya anahtar var, ilk kayıt tutuluyor.")
-
-    can = can.drop_duplicates("_match_key", keep="first")
-    ist = ist.drop_duplicates("_match_key", keep="first")
-
-    merged = can.merge(ist, on="_match_key", how="inner", suffixes=("_can", "_ist"))
-    merged = merged.reset_index(drop=True)
-
-    n = len(merged)
-    print(bar)
-    print(f"Ortak kayıtlı (iki yarışta da): {n}")
-    if n:
-        print(f"  Çanakkale'nin %{100.0 * n / len(can):.1f}'i "
-              f"İstanbul'a da katılmış")
-        print(f"  İstanbul'un %{100.0 * n / len(ist):.1f}'i "
-              f"Çanakkale'ye de katılmış")
-
-    # Cinsiyet / ülke tutarlılığını raporla.
-    for col in ("gender", "nation", "birth_year"):
-        mism = int((merged[f"{col}_can"].astype(str) != merged[f"{col}_ist"].astype(str)).sum())
-        if mism:
-            print(f"  !! {col} uyuşmazlığı (aynı anahtar, farklı değer): {mism}")
-
-    # Status çapraz tablosu.
-    can_fin = merged["status_can"] == "FINISHED"
-    ist_fin = merged["status_ist"] == "FINISHED"
-    both_fin = can_fin & ist_fin
-    print(bar)
-    print("Ortaklarda durum: "
-          f"ikisi de bitirdi={int(both_fin.sum())}, "
-          f"sadece Çanakkale bitirdi={int((can_fin & ~ist_fin).sum())}, "
-          f"sadece İstanbul bitirdi={int((~can_fin & ist_fin).sum())}, "
-          f"ikisi de bitirmedi={int((~can_fin & ~ist_fin).sum())}")
-    if merged["gender_can"].notna().any():
-        vc = merged["gender_can"].value_counts().reindex(["M", "F"], fill_value=0)
-        vc.index = ["  Erkek", "  Kadın"]
-        print(vc.to_string())
-
-    # ----- çıktı tablosunu kur -----
-    out = pd.DataFrame({
-        "full_name_canakkale": merged["full_name_can"],
-        "full_name_istanbul": merged["full_name_ist"],
-        "gender": merged["gender_can"],
-        "nation": merged["nation_can"],
-        "birth_year": merged["birth_year_can"],
-        "age_group_canakkale": merged["age_group_can"],
-        "overall_rank_canakkale": merged["overall_rank_can"],
-        "status_canakkale": merged["status_can"],
-        "time_canakkale": merged["time_text_can"],
-        "swim_seconds_canakkale": merged["swim_seconds_can"],
-        "age_group_istanbul": merged["age_group_ist"],
-        "overall_rank_istanbul": merged["overall_rank_ist"],
-        "status_istanbul": merged["status_ist"],
-        "time_istanbul": merged["time_text_ist"],
-        "swim_seconds_istanbul": merged["swim_seconds_ist"],
-        "bib_canakkale": merged["bib_can"],
-        "bib_istanbul": merged["bib_ist"],
-    })
-
-    # pace (sn/100m): mesafelere farkli oldugundan sure dogrudan karsilastirilmaz tempo uzerinden kiyaslanir !!!
-    out["pace_canakkale_s100m"] = (out["swim_seconds_canakkale"] / (can_cfg.distance_m / 100.0))
-    out["pace_istanbul_s100m"] = (out["swim_seconds_istanbul"] / (ist_cfg.distance_m / 100.0))
-    out["time_gap_seconds"] = np.where(both_fin.to_numpy(), out["swim_seconds_istanbul"] - out["swim_seconds_canakkale"], np.nan)
-    out["time_gap_percent"] = (out["time_gap_seconds"] / out["swim_seconds_canakkale"] * 100.0)
-
-    out["_both"] = (~np.isnan(out["swim_seconds_canakkale"])) & (~np.isnan(out["swim_seconds_istanbul"]))
-    out["_sort_t"] = out["swim_seconds_canakkale"].fillna(np.inf)
-    out = out.sort_values(["_both", "_sort_t"], ascending=[False, True])
-    out = out.drop(columns=["_both", "_sort_t"]).reset_index(drop=True)
-
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    out.drop(columns=["bib_canakkale", "bib_istanbul"]).to_csv(COMMON_CSV, index=False, encoding="utf-8-sig")
-
+def _finished_common(out):
+    """Her iki yarışı da bitiren, tempo sütunları geçerli ortakları filtreler."""
     fin = out.dropna(subset=["pace_canakkale_s100m", "pace_istanbul_s100m"])
     fin = fin[fin["pace_canakkale_s100m"] > 0]
     fin = fin[fin["pace_istanbul_s100m"] > 0]
-
-    print(bar)
-    print("İSTATİSTİKSEL ÖZET - her iki yarışı da bitiren ortaklar")
-    print(f"  örneklem  n = {len(fin)}")
-    if len(fin) >= 2:
-        x = fin["pace_canakkale_s100m"].to_numpy(float)
-        y = fin["pace_istanbul_s100m"].to_numpy(float)
-        pear = float(np.corrcoef(x, y)[0, 1])
-
-        # pace ranki yaris ici resmi genel siralamayla (overall_rank) aynı sirayi verdigi icin bu deger "rank consistency" olcusudur
-        spear = float(fin["pace_canakkale_s100m"].rank().corr(fin["pace_istanbul_s100m"].rank(), method="pearson"))
-        r2 = pear ** 2
-        lo, hi = _pearson_ci95(pear, len(fin))
-        slope, intercept = np.polyfit(x, y, 1)
-        can_med = float(np.median(x))
-        ist_med = float(np.median(y))
-
-        print()
-        print("  Pacing linearity  (Pearson) - tempo ilişkisinin doğrusallığı")
-        print(f"      r  = {pear:.3f}   R² = {r2:.3f}   "
-              f"%95 GA [{lo:.3f}, {hi:.3f}]   "
-              f"p {_fmt_p(_p_two_sided(pear, len(fin)))}")
-        print(f"      doğrusal uyum: İstanbul tempo = {slope:.2f} × "
-              f"Çanakkale tempo {intercept:+.1f}  (sn/100m)")
-        print()
-        print("  Rank consistency  (Spearman) - sıralama tutarlılığı")
-        print(f"      ρ = {spear:.3f}   p {_fmt_p(_p_two_sided(spear, len(fin)))}")
-        print(f"      (pace sıralaması = yarışın resmî genel sıralaması"
-              f"n = {len(fin)})")
-        print()
-        print(f"  medyan tempo  Çanakkale {can_med:.1f} sn/100m, "
-              f"İstanbul {ist_med:.1f} sn/100m "
-              f"(fark {ist_med - can_med:+.1f} sn/100m)")
-
-    _age_group_analysis(fin, make_chart=make_chart, show=show)
-
-    if show_list:
-        show_cols = ["full_name_canakkale", "gender", "birth_year", "status_canakkale", "time_canakkale", "status_istanbul", "time_istanbul", "pace_canakkale_s100m", "pace_istanbul_s100m"]
-        print(bar)
-        print(f"ORTAKLAR ({len(out)} kişi) - tam liste:")
-        with pd.option_context("display.max_rows", None, "display.width", 200, "display.colheader_justify", "left"):
-            print(out[show_cols].round(2).to_string(index=False))
-
-    if make_chart and len(fin) >= 2:
-        _save_chart(fin, can_cfg, ist_cfg, show)
-    elif make_chart:
-        print(bar)
-        print("Grafik atlandı: ikisini de bitiren yeterli ortak yok.")
-
-    print(bar)
-    print(f"Ortaklar listesi kaydedildi: {COMMON_CSV}")
-    return COMMON_CSV
+    return fin
 
 def _find_highlight_row(fin, can_cfg, ist_cfg):
     if fin is None or fin.empty:
@@ -435,12 +252,10 @@ def _save_chart(fin, can_cfg, ist_cfg, show):
 # yaş grupları - Kruskal-Wallis
 # --------------------------------------------------------------------------
 
-def _age_group_analysis(fin, make_chart, show):
-    """Yaş grupları arasında tempo farkını Kruskal-Wallis H ile test eder.
+def _age_group_analysis(fin, show):
+    """Yaş grupları arasında tempo farkını Kruskal-Wallis H ile test eder
 
-    Cinsiyete göre katmanlar (yaş kategorileri M/F ayrıdır) ve her yarış
-    için ayrı ayrı H testi yapar. Konsola özet tablosunu basar, istenirse
-    kutu grafiğini üretir.
+    Cinsiyete göre katmanlar (yaş kategorileri M/F ayrıdır) ve her yarış için ayrı ayrı H testi yapar. Konsola özet tablosunu basar ve yaş grubu x tempo kutu grafiğini üretir (age_group_kruskal_wallis.png).
     """
     bar = "=" * 66
     if fin is None or fin.empty:
@@ -488,12 +303,11 @@ def _age_group_analysis(fin, make_chart, show):
                   f"(k = {k} grup, n = {n_used})")
             testable += 1
 
-    if make_chart:
-        if testable >= 1:
-            _save_agegroup_chart(df, show)
-        else:
-            print(bar)
-            print("Yaş grubu grafiği atlandı: test edilebilir grup yok.")
+    if testable >= 1:
+        _save_agegroup_chart(df, show)
+    else:
+        print(bar)
+        print("Yaş grubu grafiği atlandı: test edilebilir grup yok.")
 
 def _save_agegroup_chart(df, show):
     races = (("canakkale", "Çanakkale"), ("istanbul", "İstanbul"))
@@ -561,19 +375,68 @@ def _save_agegroup_chart(df, show):
         print(f"Grafik kaydedildi: {KW_CHART_PNG}")
     plt.close(fig)
 
+def run(show):
+    d = load_common()
+    can_cfg, ist_cfg = d["can_cfg"], d["ist_cfg"]
+    out = d["out"]
+    fin = _finished_common(out)
+
+    bar = "=" * 66
+    print(bar)
+    print("2026 ORTAK YARIŞMACI GRAFİKLERİ - " + can_cfg.name + " / " + ist_cfg.name)
+    print(f"{can_cfg.name}: {len(d['can_raw'])} kayıtlı  ({can_cfg.distance_m:g} m)")
+    print(f"{ist_cfg.name}: {len(d['ist_raw'])} kayıtlı  ({ist_cfg.distance_m:g} m)")
+    print(bar)
+    print("İSTATİSTİKSEL ÖZET - her iki yarışı da bitiren ortaklar")
+    print(f"  örneklem  n = {len(fin)}")
+    if len(fin) >= 2:
+        x = fin["pace_canakkale_s100m"].to_numpy(float)
+        y = fin["pace_istanbul_s100m"].to_numpy(float)
+        pear = float(np.corrcoef(x, y)[0, 1])
+
+        # pace ranki yaris ici resmi genel siralamayla (overall_rank) aynı sirayi verdigi icin bu deger "rank consistency" olcusudur
+        spear = float(fin["pace_canakkale_s100m"].rank().corr(fin["pace_istanbul_s100m"].rank(), method="pearson"))
+        r2 = pear ** 2
+        lo, hi = _pearson_ci95(pear, len(fin))
+        slope, intercept = np.polyfit(x, y, 1)
+        can_med = float(np.median(x))
+        ist_med = float(np.median(y))
+
+        print()
+        print("  Pacing linearity  (Pearson) - tempo ilişkisinin doğrusallığı")
+        print(f"      r  = {pear:.3f}   R² = {r2:.3f}   "
+              f"%95 GA [{lo:.3f}, {hi:.3f}]   "
+              f"p {_fmt_p(_p_two_sided(pear, len(fin)))}")
+        print(f"      doğrusal uyum: İstanbul tempo = {slope:.2f} x "
+              f"Çanakkale tempo {intercept:+.1f}  (sn/100m)")
+        print()
+        print("  Rank consistency  (Spearman) - sıralama tutarlılığı")
+        print(f"      ρ = {spear:.3f}   p {_fmt_p(_p_two_sided(spear, len(fin)))}")
+        print(f"      (pace sıralaması = yarışın resmî genel sıralaması"
+              f"n = {len(fin)})")
+        print()
+        print(f"  medyan tempo  Çanakkale {can_med:.1f} sn/100m, "
+              f"İstanbul {ist_med:.1f} sn/100m "
+              f"(fark {ist_med - can_med:+.1f} sn/100m)")
+
+    _age_group_analysis(fin, show=show)
+
+    if len(fin) >= 2:
+        _save_chart(fin, can_cfg, ist_cfg, show)
+    else:
+        print(bar)
+        print("Tempo grafiği atlandı: ikisini de bitiren yeterli ortak yok.")
+
 def main():
     parser = argparse.ArgumentParser(
-        description="2026 Çanakkale ve İstanbul açık su yarışlarının ortak "
-                    "yarışmacılarını çıkarırtempo korelasyonunu ve yaş "
-                    "grupları arasındaki farkı (Kruskal-Wallis) özetler.")
-    parser.add_argument("--list", action="store_true",
-                        help="ortakların tamamını konsola yaz")
-    parser.add_argument("--no-chart", action="store_true",
-                        help="korelasyon grafiğini üretme")
+        description="2026 Çanakkale / İstanbul ortak yarışmacılarının tempo "
+                    "korelasyon (canakkale_vs_istanbul_common_pace.png) ve "
+                    "yaş grubu x tempo (age_group_kruskal_wallis.png) "
+                    "grafiklerini üretir.")
     parser.add_argument("--show", action="store_true",
                         help="grafiği pencere olarak aç (kaydetmez)")
     args = parser.parse_args()
-    run(show_list=args.list, make_chart=not args.no_chart, show=args.show)
+    run(show=args.show)
 
 if __name__ == "__main__":
     main()
