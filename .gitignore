@@ -6,6 +6,8 @@ venv/
 
 raceresult_data/
 
+2026/output/common_2026_dataset.csv
+
 .env
 
 .DS_Store
