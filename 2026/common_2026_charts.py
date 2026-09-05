@@ -4,7 +4,7 @@ from __future__ import annotations
 Çıktılar:
   2026/output/canakkale_vs_istanbul_common_pace.png -> tempo korelasyon grafiği
      (sahibin noktası bib 230 / bib 1831 - Hakkı Erdem Günal, M, 2004 -
-     koyu kalın mavi nokta ile vurgulanır)
+     koyu kalın mavi nokta ile vurgulanır ve legendde adı + bib ile geçer)
   2026/output/age_group_kruskal_wallis.png  -> yaş grubu x tempo + K-W testi
 
 Veri, common_2026_dataset modülündeki load_common() ile HAM datasetlerden
@@ -37,6 +37,12 @@ from matplotlib.colors import to_rgba
 from matplotlib.patches import Patch
 
 from common_2026_dataset import load_common
+
+matplotlib.rcParams.update({
+    "axes.grid": True,
+    "grid.alpha": 0.3,
+    "grid.linestyle": "--",
+})
 
 BASE_DIR = Path(__file__).resolve().parent
 OUT_DIR = BASE_DIR / "output"
@@ -207,8 +213,6 @@ def _save_chart(fin, can_cfg, ist_cfg, show):
         ax.scatter(grp["pace_canakkale_s100m"], grp["pace_istanbul_s100m"], s=22, alpha=0.55, edgecolors="none", color=colors.get(g, "#55A868"), label={"M": "Men", "F": "Women"}.get(g, g))
 
     lim = (min(x.min(), y.min()) - 5, max(x.max(), y.max()) + 5)
-    ax.plot(lim, lim, ":", color="gray", lw=1.2,
-            label="y = x")
     if len(fin) >= 2:
         b, a = np.polyfit(x, y, 1)
         xs = np.linspace(*lim, 100)
@@ -218,9 +222,12 @@ def _save_chart(fin, can_cfg, ist_cfg, show):
     if hl is not None:
         hx = float(hl["pace_canakkale_s100m"])
         hy = float(hl["pace_istanbul_s100m"])
-        ax.scatter([hx], [hy], s=95, color="#00008B", edgecolors="none", alpha=1.0, zorder=7)
-        print(f"  Grafikte koyu kalın mavi vurgulanan: "
-              f"{hl['full_name_canakkale'] or hl['full_name_istanbul']} "
+        hl_name = str(hl["full_name_canakkale"] or hl["full_name_istanbul"]).strip()
+        hl_bibs = (f"bib {int(can_cfg.default_bib)}/"
+                   f"{int(ist_cfg.default_bib)}")
+        ax.scatter([hx], [hy], s=95, color="#00008B", edgecolors="none",
+                   alpha=1.0, zorder=7, label=f"{hl_name} ({hl_bibs})")
+        print(f"  Grafikte koyu kalın mavi vurgulanan: {hl_name} "
               f"(Çanakkale bib {int(can_cfg.default_bib)}, "
               f"İstanbul bib {int(ist_cfg.default_bib)})")
 
@@ -237,7 +244,6 @@ def _save_chart(fin, can_cfg, ist_cfg, show):
     ax.set_ylabel(f"İstanbul pace (s/100m) - {ist_cfg.distance_m:g} m")
     ax.set_title("2026 common athletes - pace relationship\n Pearson = pacing linearity · Spearman = rank consistency\n")
     ax.legend(loc="upper left", frameon=True)
-    ax.grid(True, alpha=0.3)
     fig.tight_layout()
 
     if show:
@@ -344,7 +350,6 @@ def _save_agegroup_chart(df, show):
             ax.set_xticks(ticks)
             ax.set_xticklabels(labels, fontsize=8)
             ax.set_ylim(ymin, ymax)
-            ax.grid(True, axis="y", alpha=0.3)
 
             if len(groups) >= 2:
                 H, dfree, p = _kruskal_wallis(groups)
