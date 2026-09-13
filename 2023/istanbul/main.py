@@ -81,7 +81,6 @@ def download_pdf():
     PDF_PATH.write_bytes(resp.content)
     print(f"PDF kaydedildi: {PDF_PATH.name} ({len(resp.content)} bayt)")
 
-
 def parse_time_to_minutes(text):
     parts = text.split(":")
     if len(parts) == 3:

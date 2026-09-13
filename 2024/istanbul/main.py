@@ -1,19 +1,3 @@
-"""
-36. Boğaziçi Kıtalararası Yüzme Yarışı (2024) — PDF sonuçlarından veri seti.
-
-Resmî PDF sıralama listesini indirir, tabloyu ayrıştırır ve feature engineering
-uygulayarak tüm yarışmacıları tek bir CSV dosyasına yazar.
-
-2024 PDF'i 2025'ten daha zengin bir şema kullanır:
-    Rnk  RnkCat  Bone/Bib  Name  Ülke/Nat  D.Yili/YoB  Zaman/Time
-    (cinsiyet içi sıra) (kategori içi sıra / yaş grubu harfi)
-
-2025 veri setiyle aynı çekirdek sütunlara ek olarak 2024'e özgü sütunlar da
-üretilir: Nation, Birth Year, Category Position, Status (FINISHED/DNF/DSQ/DNS).
-
-Çıktı: 2024/istanbul/bogazici_36_dataset.csv
-"""
-
 from __future__ import annotations
 
 import os

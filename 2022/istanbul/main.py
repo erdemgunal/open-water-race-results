@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import os
 import re
 from pathlib import Path
@@ -77,7 +75,6 @@ def download_pdf():
     PDF_PATH.write_bytes(resp.content)
     print(f"PDF kaydedildi: {PDF_PATH.name} ({len(resp.content)} bayt)")
 
-
 def parse_time_to_minutes(text):
     parts = text.split(":")
     if len(parts) == 3:
@@ -87,7 +84,7 @@ def parse_time_to_minutes(text):
     return m + s / 60.0
 
 def extract_rows():
-    rows: list[dict] = []
+    rows = []
     with pdfplumber.open(PDF_PATH) as pdf:
         for page in pdf.pages:
             text = page.extract_text() or ""
@@ -197,7 +194,6 @@ def summarize(df):
         )
     print(bar)
 
-
 def main():
     download_pdf()
     rows = extract_rows()
@@ -211,7 +207,6 @@ def main():
     summarize(df)
     print(f"CSV kaydedildi: {CSV_PATH}")
     print(f"   {len(df)} yarışmacı, {len(df.columns)} sütun")
-
 
 if __name__ == "__main__":
     main()
