@@ -110,11 +110,10 @@ matplotlib.rcParams.update({
 
 def view1_distribution(df, cfg, user, out_dir, show):
     times = df["swim_seconds"].to_numpy(dtype=float)
-    n = times.size
     median = float(np.median(times))
-    top_decile = float(np.percentile(times, 10))
-    mean = float(np.mean(times))
-    p25, p75 = np.percentile(times, [25, 75])
+    p5 = float(np.percentile(times, 5))
+    p10 = float(np.percentile(times, 10))
+    p25 = float(np.percentile(times, 25))
     my_seconds = user["seconds"]
 
     fig, ax = plt.subplots(figsize=(10.5, 5.6))
@@ -125,35 +124,20 @@ def view1_distribution(df, cfg, user, out_dir, show):
     ax.plot(x, gaussian_kde_pdf(x, times), color="#C44E52", lw=2.2,
             label="Gaussian KDE")
 
-    y_top = float(np.max(ax.get_ylim()))
     refs = [
-        (median,     "#DD8452", f"median  {fmt_time(median)}", 0.985),
-        (top_decile, "#55A868", f"top decile  {fmt_time(top_decile)}", 0.930),
-        (my_seconds, "#B07AA1", f"you  {fmt_time(my_seconds)}", 0.875),
+        (median,     "#DD8452", f"median  {fmt_time(median)}"),
+        (p25,        "#55A868", f"Top 25% / P25  {fmt_time(p25)}"),
+        (p10,        "#3C7A89", f"Top 10% / P10  {fmt_time(p10)}"),
+        (p5,         "#8172B2", f"Top 5% / P5  {fmt_time(p5)}"),
+        (my_seconds, "#D81B60", f"me  {fmt_time(my_seconds)}"),
     ]
-    for val, color, lab, yf in refs:
-        ax.axvline(val, color=color, ls="--", lw=1.6, alpha=0.9)
-        ax.text(val, y_top * yf, lab, color=color, ha="center", va="top",
-                fontsize=9, fontweight="bold")
-
-    pct_my = 100.0 * float((times <= my_seconds).mean())
-    stats = (
-        f"n = {n:,} finishers\n"
-        f"mean {fmt_time(mean)}   median {fmt_time(median)}\n"
-        f"IQR {fmt_time(p25)} - {fmt_time(p75)}\n"
-        f"fastest {fmt_time(times.min())} / slowest {fmt_time(times.max())}\n\n"
-        f"your time {fmt_time(my_seconds)} is faster than\n"
-        f"{pct_my:.1f}% of the field"
-    )
-    ax.text(0.02, 0.03, stats, transform=ax.transAxes, ha="left", va="bottom",
-            fontsize=9, bbox=dict(boxstyle="round", facecolor="#FBF7E8",
-                                  edgecolor="#C9B458", alpha=0.95))
+    for val, color, lab in refs:
+        ax.axvline(val, color=color, ls="--", lw=1.8, alpha=0.95, label=lab)
 
     ax.set_xlabel("finish time (minutes:seconds)")
     ax.set_ylabel("density")
-    ax.set_title(f"{cfg.name} - overall finish-time distribution "
-                 "(top decile = fastest 10% = P10)")
-    ax.legend(loc="upper right", frameon=True)
+    ax.set_title(f"{cfg.name} - overall finish-time distribution")
+    ax.legend(loc="upper right", frameon=True, fontsize=8)
     ax.margins(x=0.01)
     fig.tight_layout()
 
@@ -165,7 +149,7 @@ def view1_distribution(df, cfg, user, out_dir, show):
     plt.close(fig)
     status = "saved" if not show else "shown (not saved)"
     print(f"  [1/5] {path.name}  [{status}]  (median {fmt_time(median)}, "
-          f"top decile {fmt_time(top_decile)})")
+          f"P5 {fmt_time(p5)}, P10 {fmt_time(p10)}, P25 {fmt_time(p25)})")
     return path
 
 def _draw_violin(ax, data, pos, color, width):
@@ -196,7 +180,7 @@ def view2_age_gender(df, cfg, user, out_dir, show):
     if row is not None:
         hl = (str(row["gender"]).strip().upper(), age_band(row["age_group"]))
         hl_label = {"M": "Male", "F": "Female"}.get(hl[0], hl[0]) + f" {hl[1]}"
-        hl_note = f"\u25c6 = {hl_label}, your bracket"
+        hl_note = f"\u25c6 = {hl_label}, my bracket"
     elif cfg.owner_highlight:
         hl = cfg.owner_highlight
         hl_label = {"M": "Male", "F": "Female"}.get(hl[0], hl[0]) + f" {hl[1]}"
@@ -229,8 +213,7 @@ def view2_age_gender(df, cfg, user, out_dir, show):
     ax.set_xticklabels(bands)
     ax.set_xlabel("age band")
     ax.set_ylabel("finish time (minutes:seconds)")
-    ax.set_title(f"{cfg.name} - finish time by age band and gender   "
-                 "(count under each violin)")
+    ax.set_title(f"{cfg.name} - finish time by age band and gender")
 
     handles = [mpatches.Patch(color=male_c, label="Male"),
                mpatches.Patch(color=female_c, label="Female")]
@@ -274,7 +257,7 @@ def view3_ecdf(df, cfg, user, out_dir, show):
     ax.plot([my_seconds, my_seconds], [0, cnt_le / n], color="#B07AA1",
             ls="--", lw=1.5)
     ax.plot([my_seconds], [cnt_le / n], "o", color="#B07AA1", ms=7, zorder=6)
-    ax.annotate(f"you: {fmt_time(my_seconds)}\nfaster than {pct_my:.1f}% "
+    ax.annotate(f"me: {fmt_time(my_seconds)}\nfaster than {pct_my:.1f}% "
                 f"(~rank {rank_my:,} / {n:,})",
                 xy=(my_seconds, cnt_le / n),
                 xytext=(my_seconds + 130, max(0.05, cnt_le / n - 0.20)),
@@ -301,8 +284,7 @@ def view3_ecdf(df, cfg, user, out_dir, show):
     ax.set_ylim(0, 1.02)
     ax.set_yticks([0, 0.25, 0.5, 0.75, 1.0])
     ax.set_yticklabels(["0%", "25%", "50%", "75%", "100%"])
-    ax.set_title(f"{cfg.name} - ECDF: finish time to percentile "
-                 "(steeper = tighter pack)")
+    ax.set_title(f"{cfg.name} - ECDF: finish time to percentile")
     q25, q75 = np.percentile(times, [25, 75])
     ax.text(0.985, 0.03,
             f"50% of finishers between {fmt_time(q25)} and {fmt_time(q75)}",
@@ -400,7 +382,7 @@ def view5_gender_kde(df, cfg, user, out_dir, show):
     x = np.linspace(df["swim_seconds"].min(), df["swim_seconds"].max(), 800)
     male_c, female_c, my_c = "#4C72B0", "#DD8452", "#B07AA1"
     groups = []
-    for lab, g, color in (("men", "M", male_c), ("women", "F", female_c)):
+    for lab, g, color in (("Male", "M", male_c), ("Female", "F", female_c)):
         t = df.loc[df["gender"] == g, "swim_seconds"].to_numpy(dtype=float)
         if t.size > 0:
             groups.append((lab, t, color, gaussian_kde_pdf(x, t)))
@@ -420,15 +402,15 @@ def view5_gender_kde(df, cfg, user, out_dir, show):
         med = float(np.median(t))
         ax.axvline(med, color=color, ls="--", lw=1.8, alpha=0.9, zorder=4)
         y_at = float(np.interp(med, x, pdf))
-        offset = -18 if lab == "men" else 18
-        ha = "right" if lab == "men" else "left"
+        offset = -18 if lab == "Male" else 18
+        ha = "right" if lab == "Male" else "left"
         ax.text(med + offset, y_at, f"{lab} median  {fmt_time(med)}",
                 color=color, ha=ha, va="bottom", fontsize=9,
                 fontweight="bold", zorder=5)
 
     ax.axvline(my_seconds, color=my_c, ls=":", lw=2.0, alpha=0.6, zorder=4)
-    y_you = max(float(np.interp(my_seconds, x, pdf)) for _, _, _, pdf in groups)
-    ax.text(my_seconds, y_you, f"you  {fmt_time(my_seconds)}", color=my_c,
+    y_me = max(float(np.interp(my_seconds, x, pdf)) for _, _, _, pdf in groups)
+    ax.text(my_seconds, y_me, f"me  {fmt_time(my_seconds)}", color=my_c,
             ha="center", va="bottom", fontsize=9, fontstyle="italic", zorder=5)
 
     pcts = {lab: 100.0 * float((t <= my_seconds).mean())
@@ -437,9 +419,9 @@ def view5_gender_kde(df, cfg, user, out_dir, show):
                    for lab, t, _, _ in groups]
     if len(groups) == 2:
         gap = float(np.median(groups[1][1])) - float(np.median(groups[0][1]))
-        stats_lines.append(f"median gap: women {gap:.0f}s slower")
+        stats_lines.append(f"median gap: Female {gap:.0f}s slower")
     stats_lines.append("")
-    stats_lines.append(f"your time {fmt_time(my_seconds)} is faster than")
+    stats_lines.append(f"my time {fmt_time(my_seconds)} is faster than")
     stats_lines.append("   ".join(f"{pcts[lab]:.1f}% of {lab}"
                                   for lab, _, _, _ in groups))
     ax.text(0.985, 0.03, "\n".join(stats_lines), transform=ax.transAxes,
@@ -449,9 +431,7 @@ def view5_gender_kde(df, cfg, user, out_dir, show):
 
     ax.set_xlabel("finish time (minutes:seconds)")
     ax.set_ylabel("density")
-    ax.set_title(f"{cfg.name} - men vs. women finish-time density\n"
-                 "(semi-transparent KDEs dashed = group median, "
-                 "dotted = your time)")
+    ax.set_title(f"{cfg.name} - male vs female finish-time density")
     ax.legend(loc="upper right", frameon=True)
     ax.margins(x=0.01)
     fig.tight_layout()
@@ -477,7 +457,7 @@ def run(cfg, bib, time_override, show):
     print("=" * 66)
     print(f"finishers (FINISHED, valid time) : {len(df):,}")
     print(df["gender"].value_counts().to_string())
-    print(f"your result : {user['label']}   ->   {fmt_time(user['seconds'])}")
+    print(f"my result : {user['label']}   ->   {fmt_time(user['seconds'])}")
 
     out_dir = cfg.output_dir
     out_dir.mkdir(parents=True, exist_ok=True)

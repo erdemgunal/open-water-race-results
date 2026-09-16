@@ -6,7 +6,7 @@ RACE_DIR = Path(__file__).resolve().parent
 
 EVENT = EventConfig(
     key="istanbul_2026",
-    name="Boğaziçi Kıtalararası Yüzme Yarışı 2026 (38.)",
+    name="Boğaziçi Kıtalararası Yüzme Yarışı 2026",
     event_id=413831,
     year=2026,
     distance_m=6500.0,
