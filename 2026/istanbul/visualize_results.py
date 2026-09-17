@@ -14,9 +14,6 @@ if "--show" not in sys.argv:
     matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from matplotlib import colormaps
-from matplotlib.cm import ScalarMappable
-from matplotlib.colors import Normalize
 from matplotlib.ticker import FuncFormatter
 
 def age_band(age_group):
@@ -38,15 +35,8 @@ def fmt_time(seconds):
     m, s = divmod(rem, 60)
     return f"{h}:{m:02d}:{s:02d}" if h else f"{m:02d}:{s:02d}"
 
-def fmt_pace(sec_per_100m):
-    m, s = divmod(int(round(float(sec_per_100m))), 60)
-    return f"{m}:{s:02d}"
-
 def _fmt_time_ticks(value, _pos):
     return fmt_time(value)
-
-def _fmt_pace_ticks(value, _pos):
-    return fmt_pace(value)
 
 def load_results(cfg):
     path = cfg.data_dir / f"{cfg.dataset_stem()}.csv"
@@ -316,8 +306,7 @@ def view4_nations(df, cfg, out_dir, show):
     d["nation"] = d["nation"].fillna("").astype(str).str.strip().str.upper()
     d.loc[d["nation"] == "", "nation"] = "N/A"
 
-    distance = cfg.distance_m
-    g = (d.groupby("nation", sort=False).agg(count=("bib", "count"), med_pace100=("swim_seconds", lambda s: np.median(s) / (distance / 100.0))).reset_index())
+    g = (d.groupby("nation", sort=False).agg(count=("bib", "count"), male=("gender", lambda s: int((s == "M").sum())), female=("gender", lambda s: int((s == "F").sum()))).reset_index())
     meaningful = g[g["count"] >= 5].copy()
     show_all = len(meaningful) <= 15
     if not show_all:
@@ -325,46 +314,44 @@ def view4_nations(df, cfg, out_dir, show):
     order = meaningful.sort_values("count", ascending=True)["nation"].tolist()
     m2 = meaningful.set_index("nation").loc[order]
 
+    male_c, female_c = "#4C72B0", "#DD8452"
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14.5, 0.42 * len(order) + 2.6))
-    ax2.xaxis.set_major_formatter(FuncFormatter(_fmt_pace_ticks))
     for axx in (ax1, ax2):
         axx.spines["top"].set_visible(False)
         axx.spines["right"].set_visible(False)
-    ax1.barh(order, m2["count"], color="#4C72B0", edgecolor="white")
-    ax1.set_xlabel("finishers")
-    ax1.set_title("Participation")
+
+    male_vals = m2["male"].to_numpy(dtype=float)
+    female_vals = m2["female"].to_numpy(dtype=float)
+    total_vals = male_vals + female_vals
+    with np.errstate(divide="ignore", invalid="ignore"):
+        male_pct = np.where(total_vals > 0, 100.0 * male_vals / total_vals, 0.0)
+        female_pct = np.where(total_vals > 0, 100.0 * female_vals / total_vals, 0.0)
+    ax1.barh(order, female_pct, color=female_c, edgecolor="white", label="Female")
+    ax1.barh(order, male_pct, left=female_pct, color=male_c,
+             edgecolor="white", label="Male")
+    ax1.set_xlim(0, 100)
+    ax1.set_xticks([0, 25, 50, 75, 100])
+    ax1.set_xlabel("share of finishers (%)")
+    ax1.set_title("Gender distribution")
     ax1.tick_params(axis="y", labelsize=9)
-    for i, v in enumerate(m2["count"]):
-        ax1.text(v, i, f"  {int(v)}", va="center", fontsize=8, color="#333333")
+    ax1.legend(loc="lower right", frameon=True, fontsize=8)
 
-    cmap = colormaps["plasma"]
-    pace_vals = m2["med_pace100"].to_numpy(dtype=float)
-    norm = Normalize(float(pace_vals.min()), float(pace_vals.max()))
-    ax2.barh(order, pace_vals, color=[cmap(norm(v)) for v in pace_vals],
-             edgecolor="white")
-    ax2.set_xlabel("median pace  (min:sec per 100 m)")
-    ax2.set_title("Median pace")
+    # right: finishers
+    ax2.barh(order, m2["count"], color="#808080", edgecolor="white")
+    ax2.set_xlabel("finishers")
+    ax2.set_title("Participation")
     ax2.tick_params(axis="y", labelleft=False)
-    overall_pace = float(np.median(d["swim_seconds"]) / (distance / 100.0))
-    ax2.axvline(overall_pace, color="#2A2A2A", ls="--", lw=1.2)
-    ax2.text(overall_pace, len(order) - 0.45, f"field median {fmt_pace(overall_pace)}",
-             ha="center", va="bottom", fontsize=8, color="#2A2A2A")
-    for i, v in enumerate(pace_vals):
-        ax2.text(v, i, f"  {fmt_pace(v)}", va="center", fontsize=8, color="#333333")
-
-    sm = ScalarMappable(cmap=cmap, norm=norm)
-    sm.set_array([])
-    cbar = fig.colorbar(sm, ax=ax2, fraction=0.05, pad=0.02)
-    cbar.set_label("median pace (s per 100 m)")
+    for i, v in enumerate(m2["count"]):
+        ax2.text(v, i, f"  {int(v)}", va="center", fontsize=8, color="#333333")
 
     scope = f"{len(meaningful)} nations with >= 5 finishers"
     if not show_all:
         scope = f"top 15 nations (of {len(g)} with entries)"
-    fig.suptitle(f"{cfg.name} - participation & median pace by nation  "
+    fig.suptitle(f"{cfg.name} - gender distribution & participation by nation  "
                  f"({scope})", fontsize=12)
     fig.tight_layout(rect=(0, 0, 1, 0.95))
 
-    path = out_dir / "04_nation_participation_pace.png"
+    path = out_dir / "04_nation_gender_participation.png"
     if not show:
         fig.savefig(path, dpi=150, bbox_inches="tight")
     if show:
