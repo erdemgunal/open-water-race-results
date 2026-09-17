@@ -1,24 +1,3 @@
-from __future__ import annotations
-
-"""
-Çıktılar:
-  2026/output/canakkale_vs_istanbul_common_pace.png -> tempo korelasyon grafiği
-     (sahibin noktası bib 230 / bib 1831 - Hakkı Erdem Günal, M, 2004 -
-     koyu kalın mavi nokta ile vurgulanır ve legendde adı + bib ile geçer)
-  2026/output/age_group_kruskal_wallis.png  -> yaş grubu x tempo + K-W testi
-
-Veri, common_2026_dataset modülündeki load_common() ile HAM datasetlerden
-yeniden kurulur; yani önce common_2026_dataset.py çalıştırılması gerekmez
-(common_2026_dataset.csv bu grafiklerin girdisi değildir).
-
-Not: Mesafeler (5 km vs 6.5 km) farklı olduğundan korelasyon için tempo
-sütunlarını (pace_*_s100m) kullanın.
-
-Kullanım:
-  python3 common_2026_charts.py         # grafikleri üretir (kaydeder)
-  python3 common_2026_charts.py --show  # grafiği pencere olarak aç (kaydetmez)
-"""
-
 import argparse
 import math
 import re
@@ -50,18 +29,12 @@ CHART_PNG = OUT_DIR / "canakkale_vs_istanbul_common_pace.png"
 KW_CHART_PNG = OUT_DIR / "age_group_kruskal_wallis.png"
 
 def _p_two_sided(r, n):
-    """H0: gerçek korelasyon = 0 için iki kuyruklu yaklaşık p-değeri.
-
-    t = r * sqrt((n - 2) / (1 - r^2))  büyük n'de yaklaşık standart normaldir.
-    scipy bağımlılığı olmasın diye normal CDF (erfc) ile hesaplanır.
-    """
     if n <= 3 or not -1.0 < r < 1.0:
         return float("nan")
     t = r * math.sqrt((n - 2) / (1.0 - r * r))
     return math.erfc(abs(t) / math.sqrt(2.0))
 
 def _pearson_ci95(r, n):
-    """Pearson r için Fisher z dönüşümüyle %95 güven aralığı."""
     if n <= 3 or not -1.0 < r < 1.0:
         return float("nan"), float("nan")
     z = math.atanh(r)
@@ -74,10 +47,6 @@ def _fmt_p(p):
     return "< 0.0001" if p < 0.0001 else f"{p:.4f}"
 
 def age_band_of(value):
-    """Age_group etiketinden yaş bandını çıkarır.
-
-    'Male 19-24' ve 'Male B(19-24)' -> '19-24''Male 70+' -> '70+'.
-    """
     s = "" if value is None or pd.isna(value) else str(value)
     m = re.search(r"\(([^()]*)\)", s)
     inner = m.group(1) if m else s
@@ -85,16 +54,10 @@ def age_band_of(value):
     return mm.group(1).replace(" ", "") if mm else inner.strip()
 
 def band_sort_key(band):
-    """Yaş bandını sıralamak için: '19-24' -> 19, '70+' -> 70."""
     m = re.match(r"\s*(\d{1,2})", str(band))
     return int(m.group(1)) if m else 999
 
 def _chi_square_sf(x, df):
-    """Ki-kare (df) dağılımının üst kuyruk olasılığı P(X > x).
-
-    df/2 şeklindeki serbestlik derecesiyle eksik gama oranı Q(a, x/2)'ye
-    eşittirscipy'siz olarak seri + sürekli kesir (gser/gcf) ile hesaplanır.
-    """
     if df <= 0:
         return float("nan")
     if x <= 0.0:
@@ -107,7 +70,6 @@ def _chi_square_sf(x, df):
     return max(0.0, min(1.0, _gamma_q_cf(a, x2)))
 
 def _gamma_p_series(a, x):
-    """Alt eksik gama oranı P(a, x) - x < a+1 için seri açılımı."""
     if x <= 0.0:
         return 0.0
     ap, s, d = a, 1.0 / a, 1.0 / a
@@ -120,7 +82,6 @@ def _gamma_p_series(a, x):
     return s * math.exp(-x + a * math.log(x) - math.lgamma(a))
 
 def _gamma_q_cf(a, x):
-    """Üst eksik gama oranı Q(a, x) - x >= a+1 için Lentz sürekli kesri."""
     eps, fpmin = 3e-14, 1e-300
     b = x + 1.0 - a
     c = 1.0 / fpmin
@@ -143,11 +104,6 @@ def _gamma_q_cf(a, x):
     return math.exp(-x + a * math.log(x) - math.lgamma(a)) * h
 
 def _kruskal_wallis(groups):
-    """Kruskal-Wallis H testi (bağ/ties düzeltmeli).
-
-    groups: her biri bir grup için değerler içeren liste/array'ler.
-    Dönüş: (H, serbestlik derecesi = k-1, üst kuyruk p-değeri).
-    """
     cleaned = [np.asarray(g, dtype=float) for g in groups]
     cleaned = [g[~np.isnan(g)] for g in cleaned]
     cleaned = [g for g in cleaned if g.size]
@@ -168,7 +124,6 @@ def _kruskal_wallis(groups):
         start += ni
     h = 12.0 / (n * (n + 1.0)) * h - 3.0 * (n + 1.0)
 
-    # Bağ (ties) düzeltmesi: h /= (1 - Σ(t^3-t) / (n³-n))
     counts = pooled.value_counts().to_numpy()
     tie_corr = 1.0 - float(np.sum(counts ** 3 - counts)) / (n ** 3 - n)
     if tie_corr > 0:
@@ -178,7 +133,6 @@ def _kruskal_wallis(groups):
     return float(h), dfree, _chi_square_sf(h, dfree)
 
 def _finished_common(out):
-    """Her iki yarışı da bitiren, tempo sütunları geçerli ortakları filtreler."""
     fin = out.dropna(subset=["pace_canakkale_s100m", "pace_istanbul_s100m"])
     fin = fin[fin["pace_canakkale_s100m"] > 0]
     fin = fin[fin["pace_istanbul_s100m"] > 0]
@@ -210,7 +164,7 @@ def _save_chart(fin, can_cfg, ist_cfg, show):
     fig, ax = plt.subplots(figsize=(8.2, 7.0))
     colors = {"M": "#4C72B0", "F": "#C44E52", "O": "#55A868"}
     for g, grp in fin.groupby(fin["gender"].fillna("O")):
-        ax.scatter(grp["pace_canakkale_s100m"], grp["pace_istanbul_s100m"], s=22, alpha=0.55, edgecolors="none", color=colors.get(g, "#55A868"), label={"M": "Men", "F": "Women"}.get(g, g))
+        ax.scatter(grp["pace_canakkale_s100m"], grp["pace_istanbul_s100m"], s=22, alpha=0.55, edgecolors="none", color=colors.get(g, "#55A868"), label={"M": "Male", "F": "Female"}.get(g, g))
 
     lim = (min(x.min(), y.min()) - 5, max(x.max(), y.max()) + 5)
     if len(fin) >= 2:
@@ -254,15 +208,7 @@ def _save_chart(fin, can_cfg, ist_cfg, show):
         print(f"Grafik kaydedildi: {CHART_PNG}")
     plt.close(fig)
 
-# --------------------------------------------------------------------------
-# yaş grupları - Kruskal-Wallis
-# --------------------------------------------------------------------------
-
 def _age_group_analysis(fin, show):
-    """Yaş grupları arasında tempo farkını Kruskal-Wallis H ile test eder
-
-    Cinsiyete göre katmanlar (yaş kategorileri M/F ayrıdır) ve her yarış için ayrı ayrı H testi yapar. Konsola özet tablosunu basar ve yaş grubu x tempo kutu grafiğini üretir (age_group_kruskal_wallis.png).
-    """
     bar = "=" * 66
     if fin is None or fin.empty:
         return
@@ -317,7 +263,7 @@ def _age_group_analysis(fin, show):
 
 def _save_agegroup_chart(df, show):
     races = (("canakkale", "Çanakkale"), ("istanbul", "İstanbul"))
-    genders = (("M", "Men", "#4C72B0"), ("F", "Women", "#C44E52"))
+    genders = (("M", "Male", "#4C72B0"), ("F", "Female", "#C44E52"))
     fig, axes = plt.subplots(2, 2, figsize=(13.5, 9.5))
     rng = np.random.default_rng(2026)
 
@@ -368,8 +314,8 @@ def _save_agegroup_chart(df, show):
             if j == 0:
                 ax.set_ylabel("pace (s/100m)")
 
-    fig.suptitle("2026 common athletes - pace by age group\n (box: IQR, line: medianKruskal-Wallis H test)", fontsize=13, y=0.99)
-    fig.legend(handles=[Patch(facecolor="#4C72B0", alpha=0.7, label="Men"), Patch(facecolor="#C44E52", alpha=0.7, label="Women")], loc="lower center", ncol=2, frameon=True)
+    fig.suptitle("2026 common athletes - pace by age group", fontsize=13, y=0.99)
+    fig.legend(handles=[Patch(facecolor="#4C72B0", alpha=0.7, label="Male"), Patch(facecolor="#C44E52", alpha=0.7, label="Female")], loc="lower center", ncol=2, frameon=True)
     fig.tight_layout(rect=(0, 0.045, 1, 0.95))
 
     if show:
