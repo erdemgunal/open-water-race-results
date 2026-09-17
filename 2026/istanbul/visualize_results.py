@@ -317,11 +317,7 @@ def view4_nations(df, cfg, out_dir, show):
     d.loc[d["nation"] == "", "nation"] = "N/A"
 
     distance = cfg.distance_m
-    g = (d.groupby("nation", sort=False)
-          .agg(count=("bib", "count"),
-               med_pace100=("swim_seconds",
-                            lambda s: np.median(s) / (distance / 100.0)))
-          .reset_index())
+    g = (d.groupby("nation", sort=False).agg(count=("bib", "count"), med_pace100=("swim_seconds", lambda s: np.median(s) / (distance / 100.0))).reset_index())
     meaningful = g[g["count"] >= 5].copy()
     show_all = len(meaningful) <= 15
     if not show_all:
