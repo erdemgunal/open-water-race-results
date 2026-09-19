@@ -3,11 +3,12 @@ __pycache__/
 *.egg-info/
 .venv/
 venv/
-
-raceresult_data/
-
-2026/output/common_2026_dataset.csv
-
 .env
-
 .DS_Store
+
+# ham / kişisel veri
+raceresult_data/
+**/docs/
+*.pdf
+*_dataset.csv
+*_dataset.xlsx
