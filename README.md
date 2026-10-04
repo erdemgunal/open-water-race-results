@@ -1,4 +1,7 @@
-# Cross Continental Swim Race Analytics 13 Years, 27000+ Swimmer
+# Cross Continental Swim Race Analytics
+13 Years, 27000+ Swimmer
+
+![Istanbul](./images/istanbul.jpg)
 
 - **Boğaziçi Kıtalararası Yüzme Yarışı** (Istanbul 6500 m) results from 2014 to 2026
 - **Çanakkale Boğaz Yüzme Yarışması** (Çanakkale 5000 m) results from 2026
@@ -81,6 +84,8 @@
 ---
 
 ## 5. Çanakkale 2026 - full race breakdown
+
+![Çanakkale](./images/canakkale.jpg)
 
 ### 5.1 Finish-time distribution
 
