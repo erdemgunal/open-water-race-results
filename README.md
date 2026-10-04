@@ -48,7 +48,7 @@
 
 - 455 athletes finished both races in 2026.
 - Pace in one race predicts pace in the other: Pearson r = 0.836 (R^2 = 0.70).
-- Rank order is even more stable than pace: Spearman $\rho$ = 0.870. A swimmer's place relative to peers carries over between races more reliably than their raw pace.
+- Rank order is even more stable than pace: Spearman $\rho$ = 0.870.
 - Median pace in Çanakkale is 81.4 s/100m. Median pace in Istanbul is 72.0 s/100m. The gap is 9.4 s/100m.
 - Istanbul course runs faster for almost every swimmer in the shared group that means much stronger current than the Çanakkale course.
 
@@ -75,6 +75,8 @@
 
 - 2208 finishers. Median time: 1:18:20.
 - Top 5% finished under 1:03:17. Top 10% finished under 1:07:03.
+- The distribution is right skewed with a long tail past 1:40:00.
+- My own time 1:11:40 close to the top 25% line
 
 ### 4.2 Finish time by age band and gender
 
@@ -101,7 +103,7 @@
 **Findings**
 
 - Male median: 1:17:23 (n = 1621). Female median: 1:21:58 (n = 587). Gap: 275 seconds.
-- The female distribution is wider and more spread to the right than the male distribution, which points to more variation in experience level among female finishers.
+- The female distribution is wider and more spread to the right than the male distribution which points to more variation in experience level among female finishers.
 
 ---
 
@@ -113,9 +115,10 @@
 
 **Findings**
 
-- 1318 finishers. Median time: 1:13:02.
+- 1318 finishers median time: 1:13:02
 - Top 5% finished under 55:19. Top 10% finished under 59:40.
 - The histogram shows two density regions, one near the median and a smaller one near 1:30:00. This points to a mixed field of competitive and recreational swimmers.
+- My own time 59:20 falls 10% mark (59:40) this places the result inside the top decile of the field.
 
 ### 5.2 Finish time by age band and gender
 
@@ -124,9 +127,6 @@
 **Findings**
 
 - As in Istanbul the 14–18 age band posts the fastest median for both sexes.
-- From the 25–29 band onward, men post a faster median than women with a gap that runs 6 to 9 minutes through most bands.
-- In the 65–69 band the female median (1:15:24) is marginally faster than the male median (1:15:44). Sample size is small (F n=14).
-- Finish times at age 70+ are faster here than in Istanbul for both sexes — likely a course and distance effect (5000 m vs 6500 m).
 
 ### 5.3 Participation and median pace, by nation
 
@@ -134,7 +134,7 @@
 
 **Findings**
 
-- Türkiye supplies 1073 of 1318 finishers about 81% of the field, a higher local share than Istanbul.
+- Türkiye supplies 1073 of 1318 finishers about 81% of the field higher local share than Istanbul.
 - The field drops off sharply after Türkiye: Great Britain (81), Russia (44), United States (29).
 - The fastest median pace by nation belongs to Australia (1:19/100m), ahead of the United States and Guernsey (1:21/100m each).
 
