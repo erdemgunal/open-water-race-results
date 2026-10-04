@@ -52,6 +52,8 @@
 
 ## 4. Istanbul 2026 - full race breakdown
 
+![Istanbul](./images/istanbul2.jpg)
+
 ### 4.1 Finish-time distribution
 
 ![Istanbul finish time distribution](./2026/istanbul/output/01_finish_time_distribution.png)
