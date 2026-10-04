@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import argparse
+import io
 import logging
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import requests
+from PIL import Image
 
 import matplotlib
 
@@ -16,6 +20,7 @@ if "--show" not in sys.argv:
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.ticker import FuncFormatter
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +108,62 @@ matplotlib.rcParams.update({
     "axes.spines.right": False,
     "font.size": 10,
 })
+
+FLAG_BASE_URL = "https://my.raceresult.com/graphics/flags"
+FLAG_HEIGHT_PT = 20.0
+FLAG_GAP_PT = 8.0
+_FLAG_CACHE = {}
+
+
+def _flag_image(nation: str, cache_dir=None):
+    """Return an RGBA ndarray of a 2-letter nation's flag, or None on failure.
+
+    Flags are fetched once and cached in memory and on disk (as PNG files in
+    ``cache_dir``) so later runs do not re-download them.  Returns ``None`` for
+    pseudo codes such as ``N/A`` or when the download fails, letting callers
+    fall back to a plain text label.
+    """
+    code = (nation or "").strip().upper()
+    if not code or code == "N/A":
+        return None
+    if code in _FLAG_CACHE:
+        return _FLAG_CACHE[code]
+
+    cache_dir = Path(cache_dir) if cache_dir is not None else (
+        Path(tempfile.gettempdir()) / "bogaz_flags")
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    png_path = cache_dir / f"{code}.png"
+    if png_path.exists():
+        try:
+            with Image.open(png_path) as im:
+                arr = np.asarray(im.convert("RGBA"))
+            _FLAG_CACHE[code] = arr
+            return arr
+        except Exception as exc:
+            logger.debug("flag cache read failed for %s: %s", code, exc)
+
+    try:
+        resp = requests.get(f"{FLAG_BASE_URL}/{code}.gif", timeout=10)
+        resp.raise_for_status()
+        raw = resp.content
+    except Exception as exc:
+        logger.debug("flag download failed for %s: %s", code, exc)
+        return None
+
+    try:
+        with Image.open(io.BytesIO(raw)) as im:
+            arr = np.asarray(im.convert("RGBA"))
+        try:
+            Image.fromarray(arr).save(png_path)
+        except Exception:
+            pass
+    except Exception as exc:
+        logger.debug("flag decode failed for %s: %s", code, exc)
+        return None
+
+    _FLAG_CACHE[code] = arr
+    return arr
+
 
 def view1_distribution(df, cfg, user, out_dir, show):
     times = df["swim_seconds"].to_numpy(dtype=float)
@@ -352,7 +413,21 @@ def view4_nations(df, cfg, out_dir, show):
     ax1.set_xticks([0, 25, 50, 75, 100])
     ax1.set_xlabel("share of finishers (%)")
     ax1.set_title("Gender distribution")
-    ax1.tick_params(axis="y", labelsize=9)
+    ax1.tick_params(axis="y", labelsize=9, length=0)
+
+    # Replace nation-code tick labels with country flags (text fallback).
+    ax1.set_yticks(range(len(order)))
+    ax1.set_yticklabels([""] * len(order))
+    for i, nation in enumerate(order):
+        arr = _flag_image(nation)
+        if arr is None:
+            ax1.get_yticklabels()[i].set_text(nation)
+            continue
+        im = OffsetImage(arr, zoom=FLAG_HEIGHT_PT / arr.shape[0])
+        ab = AnnotationBbox(im, (0, i), xycoords="data", xybox=(-FLAG_GAP_PT, 0),
+                            boxcoords="offset points", frameon=False, pad=0,
+                            box_alignment=(1.0, 0.5))
+        ax1.add_artist(ab)
     ax1.legend(loc="lower right", frameon=True, fontsize=8)
 
     # right: finishers
@@ -368,7 +443,7 @@ def view4_nations(df, cfg, out_dir, show):
         scope = f"top 15 nations (of {len(g)} with entries)"
     fig.suptitle(f"{cfg.name} - gender distribution & participation by nation  "
                  f"({scope})", fontsize=12)
-    fig.tight_layout(rect=(0, 0, 1, 0.95))
+    fig.subplots_adjust(left=0.13, right=0.97, top=0.90, bottom=0.07, wspace=0.25)
 
     path = out_dir / "04_nation_gender_participation.png"
     if not show:
