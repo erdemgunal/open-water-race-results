@@ -47,7 +47,7 @@
 
 ---
 
-## 4. Istanbul 2026 full race breakdown
+## 4. Istanbul 2026 - full race breakdown
 
 ### 4.1 Finish-time distribution
 
