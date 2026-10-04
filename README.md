@@ -100,7 +100,7 @@
 
 **Findings**
 
-- Male median: 1:17:23 (n = 1,621). Female median: 1:21:58 (n = 587). Gap: 275 seconds.
+- Male median: 1:17:23 (n = 1621). Female median: 1:21:58 (n = 587). Gap: 275 seconds.
 - The female distribution is wider and more spread to the right than the male distribution, which points to more variation in experience level among female finishers.
 
 ---
