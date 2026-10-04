@@ -84,8 +84,7 @@ def build_dataset(cfg, frames):
     base = frames["participants"].copy()
     if base.empty:
         raise RuntimeError("participants listesi boş veri seti üretilemedi.")
-    for c in ("status", "time_text", "swim_seconds",
-              "overall_rank", "gender_rank", "age_group_rank", "disabled_rank"):
+    for c in ("status", "time_text", "swim_seconds", "overall_rank", "gender_rank", "age_group_rank", "disabled_rank"):
         if c in base.columns:
             base = base.drop(columns=[c])
 
@@ -128,9 +127,7 @@ def build_dataset(cfg, frames):
             merged[c] = pd.NA
 
     merged = merged[COLUMN_ORDER].copy()
-    merged = merged.sort_values(
-        ["overall_rank_computed", "bib"], na_position="last"
-    ).reset_index(drop=True)
+    merged = merged.sort_values(["overall_rank_computed", "bib"], na_position="last").reset_index(drop=True)
     return merged
 
 COLUMN_DOCS = {
@@ -167,14 +164,7 @@ def build_meta(df, cfg):
             "notes": note,
         })
     notes = [
-        ("NOTE", f"Veriler RaceResult Event {cfg.event_id} ({cfg.name}) resmi listelerinden alınmıştır.",
-         "", f"https://{_provider_domain('my')}/{cfg.event_id}", ""),
-        ("NOTE", "swim_seconds bir 'duration' (süre) olduğu için epoch zaman damgası DEĞİL toplam saniye olarak tutulur.",
-         "int", "h:mm:ss -> int(seconds)", ""),
-        ("NOTE", "Sıralamalar 'min' yöntemiyle hesaplanır (eşit süreler aynı sırayı paylaşır). Resmi sıralama varsa o korunur.",
-         "int", "pandas rank(method='min')", ""),
-        ("NOTE", "Veri çekimi racekit kütüphanesiyle yarış klasöründeki fetch_results.py üzerinden yapılır (bkz. README).",
-         "text", "python fetch_results.py", ""),
+        ("NOTE", f"Veriler RaceResult Event {cfg.event_id} ({cfg.name}) resmi listelerinden alınmıştır.", "", f"https://{_provider_domain('my')}/{cfg.event_id}", ""), ("NOTE", "swim_seconds bir 'duration' (süre) olduğu için epoch zaman damgası DEĞİL toplam saniye olarak tutulur.", "int", "h:mm:ss -> int(seconds)", ""), ("NOTE", "Sıralamalar 'min' yöntemiyle hesaplanır (eşit süreler aynı sırayı paylaşır). Resmi sıralama varsa o korunur.", "int", "pandas rank(method='min')", ""), ("NOTE", "Veri çekimi racekit kütüphanesiyle yarış klasöründeki fetch_results.py üzerinden yapılır (bkz. README).", "text", "python fetch_results.py", ""),
     ]
     for n in notes:
         rows.append(dict(zip(("column", "description", "dtype", "source", "notes"), n)))
