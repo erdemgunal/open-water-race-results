@@ -1,4 +1,4 @@
-# Boğaz Swim Race Analytics 13 Years, 27000+ Swimmer
+# Cross Continental Swim Race Analytics 13 Years, 27000+ Swimmer
 
 - **Boğaziçi Kıtalararası Yüzme Yarışı** (Istanbul, 6.500 m) results from 2014 to 2026
 - **Çanakkale Boğaz Yüzme Yarışması** (Dardanelles, 5.000 m) results from 2026
