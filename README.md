@@ -160,3 +160,9 @@ python 2026/canakkale/visualize_results.py
 ```
 
 Each script writes its charts to the matching `output/` folder shown in the repository structure above.
+
+---
+
+## References
+
+- [Analyzing Race Results Over Years](https://medium.com/@alex.gascon1999/analyzing-race-results-over-years-71fde6c970ed) - Medium article by Alex Gascon
