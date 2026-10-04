@@ -128,23 +128,22 @@
 
 - As in Istanbul the 14–18 age band posts the fastest median for both sexes.
 
-### 5.3 Participation and median pace, by nation
+### 5.3 Participation and median pace by nation
 
 ![Çanakkale nation participation and pace](./2026/canakkale/output/04_nation_participation_pace.png)
 
 **Findings**
 
-- Türkiye supplies 1073 of 1318 finishers about 81% of the field higher local share than Istanbul.
-- The field drops off sharply after Türkiye: Great Britain (81), Russia (44), United States (29).
-- The fastest median pace by nation belongs to Australia (1:19/100m), ahead of the United States and Guernsey (1:21/100m each).
+- The field drops off sharply after Türkiye, Great Britain (81), Russia (44) and    United States (29).
+- The fastest median pace by nation belongs to Australia (1:19/100m) ahead of the US and Guernsey (1:21/100m each).
 
-### 5.4 Finish-time density, male vs. female
+### 5.4 Finish-time density male vs female
 
 ![Çanakkale gender KDE](./2026/canakkale/output/05_gender_kde.png)
 
 **Findings**
 
-- Male median: 1:11:11 (n = 859). Female median: 1:17:22 (n = 459). Gap: 371 seconds — larger than the 275 second gap in Istanbul.
+- Male median: 1:11:11 (n = 859). Female median: 1:17:22 (n = 459). Gap: 371 seconds (larger than the 275 second gap in Istanbul.)
 - The female distribution again runs wider and further right than the male distribution.
 
 ---
