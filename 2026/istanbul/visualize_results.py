@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import re
 import sys
 from pathlib import Path
@@ -15,6 +16,11 @@ if "--show" not in sys.argv:
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.ticker import FuncFormatter
+
+logger = logging.getLogger(__name__)
+
+if not logging.getLogger().handlers:
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 def age_band(age_group):
     s = "" if age_group is None else str(age_group)
@@ -138,8 +144,9 @@ def view1_distribution(df, cfg, user, out_dir, show):
         plt.show()
     plt.close(fig)
     status = "saved" if not show else "shown (not saved)"
-    print(f"  [1/5] {path.name}  [{status}]  (median {fmt_time(median)}, "
-          f"P5 {fmt_time(p5)}, P10 {fmt_time(p10)}, P25 {fmt_time(p25)})")
+    logger.info("  [1/5] %s  [%s]  (median %s, P5 %s, P10 %s, P25 %s)",
+                path.name, status, fmt_time(median), fmt_time(p5),
+                fmt_time(p10), fmt_time(p25))
     return path
 
 def _draw_violin(ax, data, pos, color, width):
@@ -224,8 +231,18 @@ def view2_age_gender(df, cfg, user, out_dir, show):
     if show:
         plt.show()
     plt.close(fig)
+    logger.info("  age x gender  (n=finishers, med=median time):")
+    for band in bands:
+        cells = []
+        for g in ("M", "F"):
+            grp = d[(d["band"] == band) & (d["gender"] == g)]["swim_seconds"]
+            if grp.empty:
+                continue
+            cells.append(f"{g} n={int(grp.size)} med={fmt_time(float(np.median(grp)))}")
+        logger.info("    %-8s %s", band, "   ".join(cells))
+
     status = "saved" if not show else "shown (not saved)"
-    print(f"  [2/5] {path.name}  [{status}]")
+    logger.info("  [2/5] %s  [%s]", path.name, status)
     return path
 
 def view3_ecdf(df, cfg, user, out_dir, show):
@@ -247,7 +264,7 @@ def view3_ecdf(df, cfg, user, out_dir, show):
     ax.plot([my_seconds, my_seconds], [0, cnt_le / n], color="#B07AA1",
             ls="--", lw=1.5)
     ax.plot([my_seconds], [cnt_le / n], "o", color="#B07AA1", ms=7, zorder=6)
-    ax.annotate(f"you: {fmt_time(my_seconds)}\nfaster than {pct_my:.1f}% "
+    ax.annotate(f"you: {fmt_time(my_seconds)}\nfaster than {100.0 - pct_my:.1f}% "
                 f"(~rank {rank_my:,} / {n:,})",
                 xy=(my_seconds, cnt_le / n),
                 xytext=(my_seconds + 130, max(0.05, cnt_le / n - 0.20)),
@@ -294,11 +311,13 @@ def view3_ecdf(df, cfg, user, out_dir, show):
     r50, r100 = max(1, rank_my - 50), max(1, rank_my - 100)
     t50, t100 = float(times[r50 - 1]), float(times[r100 - 1])
     status = "saved" if not show else "shown (not saved)"
-    print(f"  [3/5] {path.name}  [{status}]")
-    print(f"        rank ~{rank_my:,} -> up 50  needs {fmt_time(t50)} "
-          f"({my_seconds - t50:.0f}s faster)")
-    print(f"        rank ~{rank_my:,} -> up 100 needs {fmt_time(t100)} "
-          f"({my_seconds - t100:.0f}s faster)")
+    logger.info("  [3/5] %s  [%s]", path.name, status)
+    logger.info("        you: %s  faster than %.1f%%  (~rank %s / %s)",
+                fmt_time(my_seconds), 100.0 - pct_my, f"{rank_my:,}", f"{n:,}")
+    logger.info("        rank ~%s -> up 50  needs %s (%ss faster)",
+                f"{rank_my:,}", fmt_time(t50), f"{my_seconds - t50:.0f}")
+    logger.info("        rank ~%s -> up 100 needs %s (%ss faster)",
+                f"{rank_my:,}", fmt_time(t100), f"{my_seconds - t100:.0f}")
     return path
 
 def view4_nations(df, cfg, out_dir, show):
@@ -357,8 +376,14 @@ def view4_nations(df, cfg, out_dir, show):
     if show:
         plt.show()
     plt.close(fig)
+    logger.info("  nation participation (shown):")
+    for nation, row in m2.sort_values("count", ascending=False).iterrows():
+        logger.info("    %-14s  n=%d  (M %d / F %d)",
+                    nation, int(row["count"]), int(row["male"]), int(row["female"]))
+
     status = "saved" if not show else "shown (not saved)"
-    print(f"  [4/5] {path.name}  [{status}]  ({len(meaningful)} nations shown)")
+    logger.info("  [4/5] %s  [%s]  (%d nations shown)", path.name, status,
+                len(meaningful))
     return path
 
 def view5_gender_kde(df, cfg, user, out_dir, show):
@@ -405,7 +430,7 @@ def view5_gender_kde(df, cfg, user, out_dir, show):
         stats_lines.append(f"median gap: Female {gap:.0f}s slower")
     stats_lines.append("")
     stats_lines.append(f"my time {fmt_time(my_seconds)} is faster than")
-    stats_lines.append("   ".join(f"{pcts[lab]:.1f}% of {lab}"
+    stats_lines.append("   ".join(f"{100.0 - pcts[lab]:.1f}% of {lab}"
                                   for lab, _, _, _ in groups))
     ax.text(0.985, 0.03, "\n".join(stats_lines), transform=ax.transAxes,
             ha="right", va="bottom", fontsize=9,
@@ -428,19 +453,22 @@ def view5_gender_kde(df, cfg, user, out_dir, show):
     med_txt = "  vs  ".join(f"{lab} {fmt_time(float(np.median(t)))}"
                             for lab, t, _, _ in groups)
     status = "saved" if not show else "shown (not saved)"
-    print(f"  [5/5] {path.name}  [{status}]  ({med_txt})")
+    logger.info("  [5/5] %s  [%s]  (%s)", path.name, status, med_txt)
+    logger.info("        my time %s is faster than %s",
+                fmt_time(my_seconds),
+                "   ".join(f"{100.0 - pcts[lab]:.1f}% of {lab}" for lab, _, _, _ in groups))
     return path
 
 def run(cfg, bib, time_override, show):
     df = load_results(cfg)
     user = resolve_user(df, cfg, bib, time_override)
 
-    print("=" * 66)
-    print(cfg.name + " - visualization summary")
-    print("=" * 66)
-    print(f"finishers (FINISHED, valid time) : {len(df):,}")
-    print(df["gender"].value_counts().to_string())
-    print(f"my result : {user['label']}   ->   {fmt_time(user['seconds'])}")
+    logger.info("=" * 66)
+    logger.info("%s - visualization summary", cfg.name)
+    logger.info("=" * 66)
+    logger.info("finishers (FINISHED, valid time) : %s", f"{len(df):,}")
+    logger.info("finishers by gender:\n%s", df["gender"].value_counts().to_string())
+    logger.info("my result : %s   ->   %s", user["label"], fmt_time(user["seconds"]))
 
     out_dir = cfg.output_dir
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -451,15 +479,15 @@ def run(cfg, bib, time_override, show):
         view4_nations(df, cfg, out_dir, show=show),
         view5_gender_kde(df, cfg, user, out_dir, show=show),
     ]
-    print("=" * 66)
+    logger.info("=" * 66)
     if show:
-        print("Interactive mode: nothing was auto-saved.")
-        print("Zoom each window as you like, then use its toolbar save")
-        print("button to keep the exact view you see on screen.")
+        logger.info("Interactive mode: nothing was auto-saved.")
+        logger.info("Zoom each window as you like, then use its toolbar save")
+        logger.info("button to keep the exact view you see on screen.")
     else:
-        print("Saved figures:")
+        logger.info("Saved figures:")
         for p in sorted(out_dir.glob("*.png")):
-            print(f"   {p}")
+            logger.info("   %s", p)
     return paths
 
 def main():
