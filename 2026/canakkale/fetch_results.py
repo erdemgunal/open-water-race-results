@@ -9,9 +9,7 @@ from racekit.api import fetch_event
 
 def main():
     parser = argparse.ArgumentParser(description=f"{EVENT.name} — veri çekme")
-    parser.add_argument("--offline",
-                        action="store_true",
-                        help="sağlayıcı yerine arşivlenmiş *_raw.json dosyalarını kullan")
+    parser.add_argument("--offline", action="store_true", help="sağlayıcı yerine arşivlenmiş *_raw.json dosyalarını kullan")
     args = parser.parse_args()
     fetch_event(EVENT, offline=args.offline)
 
