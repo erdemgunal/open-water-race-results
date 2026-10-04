@@ -117,14 +117,10 @@ def plot(df, show):
     ax.set_xlabel("Overall Position")
     ax.set_ylabel("Finish Time (min:sec)")
     ax.yaxis.set_major_formatter(FuncFormatter(fmt_minutes))
-    ax.set_title(
-        "Overall Position vs Time by Sex\nİstanbul Boğaziçi 2014–2026",
-        pad=12,
-    )
+    ax.set_title("Overall Position vs Time by Sex\nİstanbul Boğaziçi 2014–2026", pad=12)
     ax.set_axisbelow(True)
     ax.margins(x=0.01, y=0.02)
 
-    # Tek lejant: cinsiyet (sol üst).
     ax.legend(title="Sex", frameon=True, loc="upper left")
 
     fig.tight_layout()

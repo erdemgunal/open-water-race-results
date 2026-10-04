@@ -114,15 +114,7 @@ FLAG_HEIGHT_PT = 20.0
 FLAG_GAP_PT = 8.0
 _FLAG_CACHE = {}
 
-
-def _flag_image(nation: str, cache_dir=None):
-    """Return an RGBA ndarray of a 2-letter nation's flag, or None on failure.
-
-    Flags are fetched once and cached in memory and on disk (as PNG files in
-    ``cache_dir``) so later runs do not re-download them.  Returns ``None`` for
-    pseudo codes such as ``N/A`` or when the download fails, letting callers
-    fall back to a plain text label.
-    """
+def _flag_image(nation, cache_dir=None):
     code = (nation or "").strip().upper()
     if not code or code == "N/A":
         return None
@@ -141,7 +133,6 @@ def _flag_image(nation: str, cache_dir=None):
             return arr
         except Exception as exc:
             logger.debug("flag cache read failed for %s: %s", code, exc)
-
     try:
         resp = requests.get(f"{FLAG_BASE_URL}/{code}.gif", timeout=10)
         resp.raise_for_status()
@@ -163,7 +154,6 @@ def _flag_image(nation: str, cache_dir=None):
 
     _FLAG_CACHE[code] = arr
     return arr
-
 
 def view1_distribution(df, cfg, user, out_dir, show):
     times = df["swim_seconds"].to_numpy(dtype=float)
@@ -246,7 +236,7 @@ def view2_age_gender(df, cfg, user, out_dir, show):
     else:
         hl, hl_label, hl_note = None, "", ""
 
-    male_c, female_c, hl_c = "#4C72B0", "#DD8452", "#C44E52"
+    male_c, female_c, hl_c = "#4C72B0", "#C44E52", "#55A868"
     fig, ax = plt.subplots(figsize=(12.5, 6.4))
     ax.yaxis.set_major_formatter(FuncFormatter(_fmt_time_ticks))
     for i, band in enumerate(bands):
@@ -256,8 +246,7 @@ def view2_age_gender(df, cfg, user, out_dir, show):
                 continue
             pos = i - 0.17 if g == "M" else i + 0.17
             is_hl = bool(hl) and (g == hl[0] and band == hl[1])
-            parts = _draw_violin(ax, grp.to_numpy(dtype=float), pos,
-                                 hl_c if is_hl else color, width=0.30)
+            parts = _draw_violin(ax, grp.to_numpy(dtype=float), pos, hl_c if is_hl else color, width=0.30)
             if parts is not None and is_hl:
                 parts["bodies"][0].set_edgecolor("#000000")
                 parts["bodies"][0].set_linewidth(2.2)
@@ -280,8 +269,8 @@ def view2_age_gender(df, cfg, user, out_dir, show):
     if hl_note:
         ax.text(0.985, 0.03, hl_note, transform=ax.transAxes, ha="right",
                 va="bottom", fontsize=9,
-                bbox=dict(boxstyle="round", facecolor="#F5E8E8",
-                          edgecolor="#C44E52", alpha=0.95))
+                bbox=dict(boxstyle="round", facecolor="#EDF7ED",
+                          edgecolor="#55A868", alpha=0.95))
     ax.legend(handles=handles, loc="upper left", frameon=True)
     ax.set_ylim(bottom=0)
     fig.tight_layout()
@@ -394,7 +383,7 @@ def view4_nations(df, cfg, out_dir, show):
     order = meaningful.sort_values("count", ascending=True)["nation"].tolist()
     m2 = meaningful.set_index("nation").loc[order]
 
-    male_c, female_c = "#4C72B0", "#DD8452"
+    male_c, female_c = "#4C72B0", "#C44E52"
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14.5, 0.42 * len(order) + 2.6))
     for axx in (ax1, ax2):
         axx.spines["top"].set_visible(False)
@@ -463,7 +452,7 @@ def view4_nations(df, cfg, out_dir, show):
 
 def view5_gender_kde(df, cfg, user, out_dir, show):
     x = np.linspace(df["swim_seconds"].min(), df["swim_seconds"].max(), 800)
-    male_c, female_c, my_c = "#4C72B0", "#DD8452", "#B07AA1"
+    male_c, female_c, my_c = "#4C72B0", "#C44E52", "#B07AA1"
     groups = []
     for lab, g, color in (("Male", "M", male_c), ("Female", "F", female_c)):
         t = df.loc[df["gender"] == g, "swim_seconds"].to_numpy(dtype=float)
@@ -570,12 +559,9 @@ def main():
     from event import EVENT
 
     parser = argparse.ArgumentParser(description=f"{EVENT.name} — görselleştirme")
-    parser.add_argument("--bib", type=int, default=None,
-                        help="senin bib numaran (varsayılan: event.py default_bib)")
-    parser.add_argument("--time", type=float, default=None,
-                        help="senin süren saniye cinsinden (--bib'i ezer)")
-    parser.add_argument("--show", action="store_true",
-                        help="grafikleri interaktif olarak da aç")
+    parser.add_argument("--bib", type=int, default=None, help="senin bib numaran (varsayılan: event.py default_bib)")
+    parser.add_argument("--time", type=float, default=None, help="senin süren saniye cinsinden (--bib'i ezer)")
+    parser.add_argument("--show", action="store_true", help="grafikleri interaktif olarak da aç")
     args = parser.parse_args()
 
     run(EVENT, bib=args.bib, time_override=args.time, show=args.show)

@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import argparse
+import io
 import logging
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import requests
+from PIL import Image
 
 import matplotlib
 
@@ -19,6 +23,7 @@ from matplotlib import colormaps
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize
 from matplotlib.ticker import FuncFormatter
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
 logger = logging.getLogger(__name__)
 
@@ -114,6 +119,52 @@ matplotlib.rcParams.update({
     "font.size": 10,
 })
 
+FLAG_BASE_URL = "https://my.raceresult.com/graphics/flags"
+FLAG_HEIGHT_PT = 20.0
+FLAG_GAP_PT = 8.0
+_FLAG_CACHE = {}
+
+def _flag_image(nation, cache_dir=None):
+    code = (nation or "").strip().upper()
+    if not code or code == "N/A":
+        return None
+    if code in _FLAG_CACHE:
+        return _FLAG_CACHE[code]
+
+    cache_dir = Path(cache_dir) if cache_dir is not None else (
+        Path(tempfile.gettempdir()) / "bogaz_flags")
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    png_path = cache_dir / f"{code}.png"
+    if png_path.exists():
+        try:
+            with Image.open(png_path) as im:
+                arr = np.asarray(im.convert("RGBA"))
+            _FLAG_CACHE[code] = arr
+            return arr
+        except Exception as exc:
+            logger.debug("flag cache read failed for %s: %s", code, exc)
+    try:
+        resp = requests.get(f"{FLAG_BASE_URL}/{code}.gif", timeout=10)
+        resp.raise_for_status()
+        raw = resp.content
+    except Exception as exc:
+        logger.debug("flag download failed for %s: %s", code, exc)
+        return None
+
+    try:
+        with Image.open(io.BytesIO(raw)) as im:
+            arr = np.asarray(im.convert("RGBA"))
+        try:
+            Image.fromarray(arr).save(png_path)
+        except Exception:
+            pass
+    except Exception as exc:
+        logger.debug("flag decode failed for %s: %s", code, exc)
+        return None
+
+    _FLAG_CACHE[code] = arr
+    return arr
+
 def view1_distribution(df, cfg, user, out_dir, show):
     times = df["swim_seconds"].to_numpy(dtype=float)
     median = float(np.median(times))
@@ -195,7 +246,7 @@ def view2_age_gender(df, cfg, user, out_dir, show):
     else:
         hl, hl_label, hl_note = None, "", ""
 
-    male_c, female_c, hl_c = "#4C72B0", "#DD8452", "#C44E52"
+    male_c, female_c, hl_c = "#4C72B0", "#C44E52", "#55A868"
     fig, ax = plt.subplots(figsize=(12.5, 6.4))
     ax.yaxis.set_major_formatter(FuncFormatter(_fmt_time_ticks))
     for i, band in enumerate(bands):
@@ -205,16 +256,12 @@ def view2_age_gender(df, cfg, user, out_dir, show):
                 continue
             pos = i - 0.17 if g == "M" else i + 0.17
             is_hl = bool(hl) and (g == hl[0] and band == hl[1])
-            parts = _draw_violin(ax, grp.to_numpy(dtype=float), pos,
-                                 hl_c if is_hl else color, width=0.30)
+            parts = _draw_violin(ax, grp.to_numpy(dtype=float), pos, hl_c if is_hl else color, width=0.30)
             if parts is not None and is_hl:
                 parts["bodies"][0].set_edgecolor("#000000")
                 parts["bodies"][0].set_linewidth(2.2)
-                ax.plot([pos], [np.median(grp)], marker="*", ms=15,
-                        color="#000000", zorder=9)
-            ax.text(pos, -0.055, str(int(grp.size)),
-                    transform=ax.get_xaxis_transform(), ha="center", va="top",
-                    fontsize=7.5, color="#555555")
+                ax.plot([pos], [np.median(grp)], marker="*", ms=15, color="#000000", zorder=9)
+            ax.text(pos, -0.055, str(int(grp.size)), transform=ax.get_xaxis_transform(), ha="center", va="top", fontsize=7.5, color="#555555")
 
     ax.set_xticks(range(len(bands)))
     ax.set_xticklabels(bands)
@@ -229,8 +276,8 @@ def view2_age_gender(df, cfg, user, out_dir, show):
     if hl_note:
         ax.text(0.985, 0.03, hl_note, transform=ax.transAxes, ha="right",
                 va="bottom", fontsize=9,
-                bbox=dict(boxstyle="round", facecolor="#F5E8E8",
-                          edgecolor="#C44E52", alpha=0.95))
+                bbox=dict(boxstyle="round", facecolor="#EDF7ED",
+                          edgecolor="#55A868", alpha=0.95))
     ax.legend(handles=handles, loc="upper left", frameon=True)
     ax.set_ylim(bottom=0)
     fig.tight_layout()
@@ -356,7 +403,20 @@ def view4_nations(df, cfg, out_dir, show):
     ax1.barh(order, m2["count"], color="#4C72B0", edgecolor="white")
     ax1.set_xlabel("finishers")
     ax1.set_title("Participation")
-    ax1.tick_params(axis="y", labelsize=9)
+    ax1.tick_params(axis="y", labelsize=9, length=0)
+
+    ax1.set_yticks(range(len(order)))
+    ax1.set_yticklabels([""] * len(order))
+    for i, nation in enumerate(order):
+        arr = _flag_image(nation)
+        if arr is None:
+            ax1.get_yticklabels()[i].set_text(nation)
+            continue
+        im = OffsetImage(arr, zoom=FLAG_HEIGHT_PT / arr.shape[0])
+        ab = AnnotationBbox(im, (0, i), xycoords="data", xybox=(-FLAG_GAP_PT, 0),
+                            boxcoords="offset points", frameon=False, pad=0,
+                            box_alignment=(1.0, 0.5))
+        ax1.add_artist(ab)
     for i, v in enumerate(m2["count"]):
         ax1.text(v, i, f"  {int(v)}", va="center", fontsize=8, color="#333333")
 
@@ -385,7 +445,7 @@ def view4_nations(df, cfg, out_dir, show):
         scope = f"top 15 nations (of {len(g)} with entries)"
     fig.suptitle(f"{cfg.name} - participation & median pace by nation  "
                  f"({scope})", fontsize=12)
-    fig.tight_layout(rect=(0, 0, 1, 0.95))
+    fig.subplots_adjust(left=0.13, right=0.87, top=0.90, bottom=0.07, wspace=0.25)
 
     path = out_dir / "04_nation_participation_pace.png"
     if not show:
@@ -405,7 +465,7 @@ def view4_nations(df, cfg, out_dir, show):
 
 def view5_gender_kde(df, cfg, user, out_dir, show):
     x = np.linspace(df["swim_seconds"].min(), df["swim_seconds"].max(), 800)
-    male_c, female_c, my_c = "#4C72B0", "#DD8452", "#B07AA1"
+    male_c, female_c, my_c = "#4C72B0", "#C44E52", "#B07AA1"
     groups = []
     for lab, g, color in (("Male", "M", male_c), ("Female", "F", female_c)):
         t = df.loc[df["gender"] == g, "swim_seconds"].to_numpy(dtype=float)
