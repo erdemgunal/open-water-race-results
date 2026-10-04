@@ -72,7 +72,7 @@
 - Russia is the second largest group with 278 finishers then Great Britain, Ukraine and the US.
 - Female share by nation varies widely 60% in the UAE, near 50% in the Netherlands and Kazakhstan but under 15% in Georgia and Uzbekistan.
 
-### 4.4 Finish time density, male vs. female
+### 4.4 Finish time density male vs female
 
 ![Istanbul gender KDE](./2026/istanbul/output/05_gender_kde.png)
 
