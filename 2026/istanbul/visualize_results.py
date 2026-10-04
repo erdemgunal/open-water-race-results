@@ -570,12 +570,9 @@ def main():
     from event import EVENT
 
     parser = argparse.ArgumentParser(description=f"{EVENT.name} — görselleştirme")
-    parser.add_argument("--bib", type=int, default=None,
-                        help="senin bib numaran (varsayılan: event.py default_bib)")
-    parser.add_argument("--time", type=float, default=None,
-                        help="senin süren saniye cinsinden (--bib'i ezer)")
-    parser.add_argument("--show", action="store_true",
-                        help="grafikleri interaktif olarak da aç")
+    parser.add_argument("--bib", type=int, default=None, help="senin bib numaran (varsayılan: event.py default_bib)")
+    parser.add_argument("--time", type=float, default=None, help="senin süren saniye cinsinden (--bib'i ezer)")
+    parser.add_argument("--show", action="store_true", help="grafikleri interaktif olarak da aç")
     args = parser.parse_args()
 
     run(EVENT, bib=args.bib, time_override=args.time, show=args.show)
