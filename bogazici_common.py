@@ -1,18 +1,8 @@
-"""Boğaziçi (İstanbul) 2022–2025 PDF ayrıştırma scriptleri için ortak yardımcılar.
-
-racekit paketinden bağımsızdır; yıllara göre tekrarlanan sabitleri ve
-fonksiyonları tek yerde toplar.
-"""
-
-from __future__ import annotations
-
 from pathlib import Path
 
 import pandas as pd
 import requests
 
-# Tüm yıllardaki istek başlıklarının birleşimi (2023 ek başlıklar gönderir;
-# bunlar diğer yıllar için zararsızdır).
 HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Sec-Fetch-Dest": "document",
@@ -43,9 +33,28 @@ AGE_GROUP_BY_LETTER = {
 
 GENDER_MAP = {"Erkek": "Male", "Kadın": "Female"}
 
+KNOWN_NATIONS = frozenset(
+    {
+        "AFG", "ALB", "ARG", "ASA", "AUS", "AUT", "AZE", "BEL", "BHR", "BLR",
+        "BRA", "BRN", "BUL", "CAN", "CHI", "CHN", "COL", "CRO", "CYP", "CZE",
+        "DEN", "EGY", "ESP", "EST", "ETH", "FIN", "FRA", "GBR", "GEO", "GER",
+        "GIB", "GRE", "HKG", "HUN", "INA", "IND", "IRL", "ISR", "ITA", "JOR",
+        "JPN", "KAZ", "KGZ", "KKTC", "KOR", "KUW", "KZK", "LAT", "LIB", "LIT",
+        "LTU", "LUX", "MAC", "MAR", "MAS", "MDA", "MEX", "MKD", "MLT", "NED",
+        "NOR", "NZL", "OMN", "PER", "PHI", "POL", "POR", "QAT", "ROU", "RSA",
+        "RUS", "SIN", "SLO", "SRB", "SUI", "SVK", "SWE", "THA", "TPE", "TUR",
+        "UAE", "UKR", "USA", "UZB", "VEN", "ZIM",
+    }
+)
+
+def split_merged_nation(name):
+    name = (name or "").strip()
+    for code in sorted(KNOWN_NATIONS, key=len, reverse=True):
+        if len(code) < len(name) and name.endswith(code) and name[-len(code) - 1].isalpha():
+            return name[: -len(code)].strip(), code
+    return name, None
 
 def download_pdf(pdf_url, pdf_path, headers=HEADERS, timeout=60):
-    """PDF'i indirir (zaten mevcutsa yeniden indirmez)."""
     pdf_path = Path(pdf_path)
     if pdf_path.exists():
         print(f"PDF zaten mevcut: {pdf_path.name}")
@@ -56,14 +65,10 @@ def download_pdf(pdf_url, pdf_path, headers=HEADERS, timeout=60):
     pdf_path.write_bytes(resp.content)
     print(f"PDF kaydedildi: {pdf_path.name} ({len(resp.content)} bayt)")
 
-
 def gender_from_title(title):
-    """Sayfa başlığından cinsiyeti çıkarır (Women → Female, diğer → Male)."""
     return "Female" if "Women" in title else "Male"
 
-
 def parse_time_to_minutes(text):
-    """'HH:MM:SS' veya 'MM:SS' biçimindeki süreyi dakikaya çevirir."""
     parts = text.split(":")
     if len(parts) == 3:
         h, m, s = (int(p) for p in parts)
@@ -71,13 +76,7 @@ def parse_time_to_minutes(text):
     m, s = (int(p) for p in parts)
     return m + s / 60.0
 
-
 def build_dataset(rows, year, race_name):
-    """Satır sözlüklerinden ortak şemada bir DataFrame üretir.
-
-    'Status' sütunu varsa (2022–2024) sıra yalnızca FINISHED için hesaplanır;
-    yoksa (2025) tüm satırlar bitirmiş kabul edilir.
-    """
     df = pd.DataFrame(rows)
 
     df["Finish Time (min)"] = df["Finish Time (min)"].round(3)
@@ -124,7 +123,7 @@ def build_dataset(rows, year, race_name):
 
     df = df[columns]
     if has_status:
-        df = df.reset_index(drop=True)  # 2022–2024: PDF sırası korunur.
+        df = df.reset_index(drop=True)
     else:
         df = df.sort_values("Overall Position").reset_index(drop=True)  # 2025
 
@@ -137,9 +136,7 @@ def build_dataset(rows, year, race_name):
         df["Birth Year"] = pd.to_numeric(df["Birth Year"], errors="coerce").astype("Int64")
     return df
 
-
 def summarize(df, year, race_name):
-    """Veri seti özetini konsola yazar."""
     bar = "=" * 66
     print(bar)
     print(f"{race_name} ({year}) — veri seti özeti")
@@ -165,9 +162,7 @@ def summarize(df, year, race_name):
         )
     print(bar)
 
-
 def save_dataset(df, csv_path):
-    """DataFrame'i CSV olarak kaydeder ve kayıt özet satırını yazar."""
     csv_path = Path(csv_path)
     csv_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(csv_path, index=False, encoding="utf-8-sig")

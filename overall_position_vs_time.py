@@ -28,6 +28,14 @@ BASE_DIR = Path(__file__).resolve().parent
 OUT_DIR = BASE_DIR / "output"
 
 ISTANBUL_CSVS = {
+    2014: BASE_DIR / "2014" / "istanbul" / "bogazici_26_dataset.csv",
+    2015: BASE_DIR / "2015" / "istanbul" / "bogazici_27_dataset.csv",
+    2016: BASE_DIR / "2016" / "istanbul" / "bogazici_28_dataset.csv",
+    2017: BASE_DIR / "2017" / "istanbul" / "bogazici_29_dataset.csv",
+    2018: BASE_DIR / "2018" / "istanbul" / "bogazici_30_dataset.csv",
+    2019: BASE_DIR / "2019" / "istanbul" / "bogazici_31_dataset.csv",
+    2020: BASE_DIR / "2020" / "istanbul" / "bogazici_32_dataset.csv",
+    2021: BASE_DIR / "2021" / "istanbul" / "bogazici_33_dataset.csv",
     2022: BASE_DIR / "2022" / "istanbul" / "bogazici_34_dataset.csv",
     2023: BASE_DIR / "2023" / "istanbul" / "bogazici_35_dataset.csv",
     2024: BASE_DIR / "2024" / "istanbul" / "bogazici_36_dataset.csv",
@@ -110,7 +118,7 @@ def plot(df, show):
     ax.set_ylabel("Finish Time (min:sec)")
     ax.yaxis.set_major_formatter(FuncFormatter(fmt_minutes))
     ax.set_title(
-        "Overall Position vs Time by Sex\nİstanbul Boğaziçi 2022–2026",
+        "Overall Position vs Time by Sex\nİstanbul Boğaziçi 2014–2026",
         pad=12,
     )
     ax.set_axisbelow(True)
@@ -131,7 +139,7 @@ def plot(df, show):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="İstanbul Boğaziçi yarışlarının (2022–2026) bitirenler için "
+        description="İstanbul Boğaziçi yarışlarının (2014–2026) bitirenler için "
                     "Overall Position vs Time dağılımını cinsiyete göre renklendirir."
     )
     parser.add_argument("--show", action="store_true",
