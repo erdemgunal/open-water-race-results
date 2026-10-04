@@ -17,7 +17,7 @@
 
 ---
 
-## 2. Overall position vs finish time by sex Boğaziçi Kıtalararası Yüzme Yarışı (2014-2026)
+## 2. Overall position vs finish time by sex
 
 ![Overall position vs time by gender](./output/overall_position_vs_time_by_sex.png)
 
