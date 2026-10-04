@@ -6,8 +6,6 @@
 - **Boğaziçi Kıtalararası Yüzme Yarışı** (Istanbul 6500 m) results from 2014 to 2026
 - **Çanakkale Boğaz Yüzme Yarışması** (Çanakkale 5000 m) results from 2026
 
----
-
 ## 1. Participation Boğaziçi Kıtalararası Yüzme Yarışı 2014-2026
 
 ![Participation over years by gender](./output/participation_over_years_by_gender.png)
@@ -16,7 +14,6 @@
 - 2016 and 2020 show sharp drops. The 2020 drop lines up with the global pandemic.
 - 2026 shows a drop from the 2025 peak, down to 2336 finishers (about -12%).
 
----
 
 ## 2. Overall position vs finish time by sex
 
@@ -24,8 +21,6 @@
 
 - Each years curve follows similar shape 1) slow rise through the fast group 2) flat middle section then 3) steep rise at the tail.
 - Curves with the longest tail (2024, 2025) match the years with the highest total finisher counts.
-
----
 
 ## 3. 2026 cross race comparison: Çanakkale vs Istanbul
 
@@ -47,8 +42,6 @@
 - The effect is stronger for men (H = 48.4 Çanakkale, H = 42.2 Istanbul) than for women (H = 24.6 Çanakkale, H = 26.0 Istanbul).
 - Pace is fastest in the 19-29 age range and slows from the 60+ groups onward in both races.
 - Istanbul pace is faster than Çanakkale pace in every age group.
-
----
 
 ## 4. Istanbul 2026 - full race breakdown
 
@@ -82,8 +75,6 @@
 ![Istanbul gender KDE](./2026/istanbul/output/05_gender_kde.png)
 
 - male median: 1:17:23 (n = 1621), female median: 1:21:58 (n = 587), gap: 275 seconds
-
----
 
 ## 5. Çanakkale 2026 - full race breakdown
 
@@ -119,8 +110,6 @@
 - Male median: 1:11:11 (n = 859), female median: 1:17:22 (n = 459), gap: 371 seconds (larger than the 275 second gap in Istanbul)
 - The female distribution again runs wider and further right than the male distribution.
 
----
-
 ## Methods notes
 
 - Finish times include only official, valid results (status = FINISHED).
@@ -128,8 +117,6 @@
 - The Kruskal-Wallis H test checks whether pace distributions differ across age groups. A low p-value (< 0.05) rejects the claim that all groups share the same distribution.
 - Pearson r measures the linear fit between two pace series. Spearman ρ measures how well rank order carries over independent of a linear fit.
 - Small sub-groups (n < 10) appear in several charts. Treat their medians as indicative, not conclusive.
-
----
 
 ## How to reproduce
 
@@ -143,8 +130,6 @@ python 2026/canakkale/visualize_results.py
 ```
 
 Each script writes its charts to the matching `output/` folder shown in the repository structure above.
-
----
 
 ## References
 
